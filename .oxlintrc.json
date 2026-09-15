@@ -1,0 +1,17 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["typescript", "react", "react-hooks"],
+  "rules": {
+    "typescript/no-explicit-any": "warn",
+    "no-unused-vars": ["warn", { "argsIgnorePattern": "^_" }]
+  },
+  "ignorePatterns": [
+    "node_modules/**",
+    ".expo/**",
+    "dist/**",
+    ".agents/**",
+    "*.config.cjs",
+    "babel.config.cjs",
+    "metro.config.cjs"
+  ]
+}

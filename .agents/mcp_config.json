@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "figma-desktop": {
+      "serverUrl": "http://127.0.0.1:3845/mcp"
+    },
+    "expo": {
+      "serverUrl": "https://mcp.expo.dev/mcp"
+    }
+  }
+}

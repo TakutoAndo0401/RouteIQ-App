@@ -1,0 +1,35 @@
+node_modules/
+.pnpm-store/
+.expo/
+dist/
+web-build/
+*.tsbuildinfo
+
+# Native builds
+ios/
+android/
+
+# Environment variables
+.env*
+!.env.example
+
+# Credentials & Keystores
+*.keystore
+*.jks
+*.p8
+*.p12
+*.mobileprovision
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+*.log
+
+# macOS
+.DS_Store
+
+# IDE & Editors
+.idea/
+.vscode/

@@ -1,0 +1,21 @@
+// url=https://www.figma.com/design/179eOKzipgKbiI86TZGAT0/%E5%AE%89%E8%97%A4%E3%81%8A%E8%A9%A6%E3%81%97%E4%BD%9C%E6%A5%AD%E7%94%A8%EF%BC%88%E3%82%B3%E3%83%B3%E3%83%9D%E3%83%BC%E3%83%8D%E3%83%B3%E3%83%88%EF%BC%89?node-id=7-249
+// component=RouteCard_General
+
+import figma from "figma";
+
+export default {
+  id: "RouteCard_General",
+  imports: ['import { RouteCard } from "./RouteCard";'],
+  example: figma.code`<RouteCard
+  type="general"
+  title="一般道ルート"
+  durationMinutes={145}
+  distanceKm={92.0}
+  tollYen={null}
+  fuelCostYen={1200}
+  totalCostYen={1200}
+  isRecommended={false}
+  etaText="15:25着"
+/>`,
+  metadata: { nestable: true },
+};

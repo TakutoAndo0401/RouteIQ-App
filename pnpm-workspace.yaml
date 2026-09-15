@@ -1,0 +1,12 @@
+packages:
+  - "."
+allowBuilds:
+  esbuild: true
+overrides:
+  "react-native-gesture-handler": "~2.20.2"
+  "@expo/dom-webview": "-"
+peerDependencyRules:
+  ignoreMissing:
+    - "@expo/dom-webview"
+    - "@react-native-community/datetimepicker"
+    - "@react-native-community/slider"
