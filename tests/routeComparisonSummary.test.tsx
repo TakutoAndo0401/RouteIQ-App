@@ -137,7 +137,7 @@ const sampleResult: CompareRoutesResult = {
   apiFailures: [],
 };
 
-describe("RouteComparisonSummary - Duplicate Button Elimination", () => {
+describe("ルート比較サマリー画面 (RouteComparisonSummary)", () => {
   let container: HTMLDivElement | null = null;
   let root: ReactDOM.Root | null = null;
 
@@ -158,213 +158,227 @@ describe("RouteComparisonSummary - Duplicate Button Elimination", () => {
     }
   });
 
-  it("renders a single 全画面 button in header and does NOT render any 拡大/縮小 button", () => {
-    act(() => {
-      root!.render(
-        <RouteComparisonSummary
-          result={sampleResult}
-          origin="千代田区大手町"
-          destination="丸の内東京駅"
-        />,
-      );
-    });
+  describe("UIボタンの整理と重複排除", () => {
+    describe("正常系テスト", () => {
+      it("ヘッダーに「全画面」ボタンのみを表示し、重複する「拡大/縮小」テキストは表示しない", () => {
+        act(() => {
+          root!.render(
+            <RouteComparisonSummary
+              result={sampleResult}
+              origin="千代田区大手町"
+              destination="丸の内東京駅"
+            />,
+          );
+        });
 
-    const textContent = container!.textContent ?? "";
-    expect(textContent).toContain("全画面");
-    expect(textContent).not.toContain("拡大");
-    expect(textContent).not.toContain("縮小");
+        const textContent = container!.textContent ?? "";
+        expect(textContent).toContain("全画面");
+        expect(textContent).not.toContain("拡大");
+        expect(textContent).not.toContain("縮小");
+      });
+
+      it("埋め込みGoogleMapViewに対して重複する拡大・外部連携ボタンの表示フラグを渡さない", () => {
+        act(() => {
+          root!.render(
+            <RouteComparisonSummary
+              result={sampleResult}
+              origin="千代田区大手町"
+              destination="丸の内東京駅"
+            />,
+          );
+        });
+
+        expect(lastGoogleMapViewProps).not.toBeNull();
+        expect(lastGoogleMapViewProps?.showExpandButton).toBeFalsy();
+        expect(lastGoogleMapViewProps?.showExternalButton).toBeFalsy();
+      });
+
+      it("「Googleマップで開く」ボタンが1つのみ描画され、押下時にナビ開始URLをブラウザやアプリで開く", () => {
+        act(() => {
+          root!.render(
+            <RouteComparisonSummary
+              result={sampleResult}
+              origin="千代田区大手町"
+              destination="丸の内東京駅"
+            />,
+          );
+        });
+
+        const externalButtons = Array.from(
+          container!.querySelectorAll('[aria-label="Googleマップアプリでナビを開始"]'),
+        );
+        expect(externalButtons).toHaveLength(1);
+
+        act(() => {
+          externalButtons[0].dispatchEvent(new MouseEvent("click", { bubbles: true }));
+        });
+
+        expect(Linking.openURL).toHaveBeenCalledTimes(1);
+        expect(Linking.openURL).toHaveBeenCalledWith(
+          expect.stringContaining("https://www.google.com/maps/dir/?api=1"),
+        );
+      });
+    });
   });
 
-  it("does not pass showExpandButton or showExternalButton to GoogleMapView", () => {
-    act(() => {
-      root!.render(
-        <RouteComparisonSummary
-          result={sampleResult}
-          origin="千代田区大手町"
-          destination="丸の内東京駅"
-        />,
-      );
-    });
+  describe("全画面地図モーダル表示機能", () => {
+    describe("正常系テスト", () => {
+      it("「全画面」ボタンを押下すると全画面モーダルが開き、閉じるボタンで閉じることができる", () => {
+        act(() => {
+          root!.render(
+            <RouteComparisonSummary
+              result={sampleResult}
+              origin="千代田区大手町"
+              destination="丸の内東京駅"
+            />,
+          );
+        });
 
-    expect(lastGoogleMapViewProps).not.toBeNull();
-    expect(lastGoogleMapViewProps?.showExpandButton).toBeFalsy();
-    expect(lastGoogleMapViewProps?.showExternalButton).toBeFalsy();
+        expect(container!.querySelector('[data-testid="fullscreen-modal"]')).toBeNull();
+
+        const fullscreenButton = container!.querySelector('[aria-label="地図を全画面で表示"]');
+        expect(fullscreenButton).not.toBeNull();
+
+        act(() => {
+          fullscreenButton!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+        });
+
+        const modalElement = container!.querySelector('[data-testid="fullscreen-modal"]');
+        expect(modalElement).not.toBeNull();
+        // Androidのエッジトゥエッジ対応（statusBarTranslucentが有効）
+        expect(modalElement?.getAttribute("data-statusbartranslucent")).toBe("true");
+
+        const closeButton = container!.querySelector('[aria-label="全画面表示を閉じる"]');
+        expect(closeButton).not.toBeNull();
+
+        act(() => {
+          closeButton!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+        });
+
+        expect(container!.querySelector('[data-testid="fullscreen-modal"]')).toBeNull();
+      });
+
+      it("Android端末の戻るハードウェアボタン（onRequestClose）押下時にも全画面モーダルが閉じる", () => {
+        act(() => {
+          root!.render(
+            <RouteComparisonSummary
+              result={sampleResult}
+              origin="千代田区大手町"
+              destination="丸の内東京駅"
+            />,
+          );
+        });
+
+        const fullscreenButton = container!.querySelector('[aria-label="地図を全画面で表示"]');
+        act(() => {
+          fullscreenButton!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+        });
+        expect(container!.querySelector('[data-testid="fullscreen-modal"]')).not.toBeNull();
+
+        // Android戻るボタンのシミュレート (onRequestClose)
+        const backButton = container!.querySelector('[data-testid="modal-hardware-back"]');
+        expect(backButton).not.toBeNull();
+        act(() => {
+          backButton!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+        });
+
+        expect(container!.querySelector('[data-testid="fullscreen-modal"]')).toBeNull();
+      });
+    });
   });
 
-  it("renders only one 'Googleマップで開く' button and calls Linking.openURL on press", () => {
-    act(() => {
-      root!.render(
-        <RouteComparisonSummary
-          result={sampleResult}
-          origin="千代田区大手町"
-          destination="丸の内東京駅"
-        />,
-      );
-    });
-
-    const externalButtons = Array.from(
-      container!.querySelectorAll('[aria-label="Googleマップアプリでナビを開始"]'),
-    );
-    expect(externalButtons).toHaveLength(1);
-
-    act(() => {
-      externalButtons[0].dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    });
-
-    expect(Linking.openURL).toHaveBeenCalledTimes(1);
-    expect(Linking.openURL).toHaveBeenCalledWith(
-      expect.stringContaining("https://www.google.com/maps/dir/?api=1"),
-    );
-  });
-
-  it("opens fullscreen modal when 全画面 button is pressed", () => {
-    act(() => {
-      root!.render(
-        <RouteComparisonSummary
-          result={sampleResult}
-          origin="千代田区大手町"
-          destination="丸の内東京駅"
-        />,
-      );
-    });
-
-    expect(container!.querySelector('[data-testid="fullscreen-modal"]')).toBeNull();
-
-    const fullscreenButton = container!.querySelector('[aria-label="地図を全画面で表示"]');
-    expect(fullscreenButton).not.toBeNull();
-
-    act(() => {
-      fullscreenButton!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    });
-
-    const modalElement = container!.querySelector('[data-testid="fullscreen-modal"]');
-    expect(modalElement).not.toBeNull();
-    // Verify Android edge-to-edge support: statusBarTranslucent is enabled
-    expect(modalElement?.getAttribute("data-statusbartranslucent")).toBe("true");
-
-    const closeButton = container!.querySelector('[aria-label="全画面表示を閉じる"]');
-    expect(closeButton).not.toBeNull();
-
-    act(() => {
-      closeButton!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    });
-
-    expect(container!.querySelector('[data-testid="fullscreen-modal"]')).toBeNull();
-  });
-
-  it("supports Android hardware back button via onRequestClose", () => {
-    act(() => {
-      root!.render(
-        <RouteComparisonSummary
-          result={sampleResult}
-          origin="千代田区大手町"
-          destination="丸の内東京駅"
-        />,
-      );
-    });
-
-    const fullscreenButton = container!.querySelector('[aria-label="地図を全画面で表示"]');
-    act(() => {
-      fullscreenButton!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    });
-    expect(container!.querySelector('[data-testid="fullscreen-modal"]')).not.toBeNull();
-
-    // Trigger Android hardware back button (onRequestClose)
-    const backButton = container!.querySelector('[data-testid="modal-hardware-back"]');
-    expect(backButton).not.toBeNull();
-    act(() => {
-      backButton!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    });
-
-    expect(container!.querySelector('[data-testid="fullscreen-modal"]')).toBeNull();
-  });
-
-  it("passes coordinates and routePolyline to GoogleMapView", () => {
-    const resultWithPolyline: CompareRoutesResult = {
-      ...sampleResult,
-      expresswayRoute: {
-        ...sampleResult.expresswayRoute,
-        routePolyline: [
+  describe("地図座標とルート切り替え連動", () => {
+    describe("正常系テスト", () => {
+      it("高速道と一般道の両方のポリラインを渡し、切り替えボタン押下でアクティブ表示が切り替わる", () => {
+        const expresswayPolyline = [
           { lat: 35.6865, lng: 139.7644 },
           { lat: 35.6812, lng: 139.7671 },
-        ],
-      },
-    };
+        ];
+        const localPolyline = [
+          { lat: 35.6865, lng: 139.7644 },
+          { lat: 35.683, lng: 139.765 },
+          { lat: 35.6812, lng: 139.7671 },
+        ];
 
-    act(() => {
-      root!.render(
-        <RouteComparisonSummary
-          result={resultWithPolyline}
-          origin="千代田区大手町永代通り"
-          destination="千代田区丸の内東京駅"
-          originCoordinates={{ latitude: 35.6865, longitude: 139.7644 }}
-          destinationCoordinates={{ latitude: 35.6812, longitude: 139.7671 }}
-        />,
-      );
+        const resultWithBothPolylines: CompareRoutesResult = {
+          ...sampleResult,
+          recommendedRoute: "expressway",
+          expresswayRoute: {
+            ...sampleResult.expresswayRoute,
+            routePolyline: expresswayPolyline,
+          },
+          localRoute: {
+            ...sampleResult.localRoute,
+            routePolyline: localPolyline,
+          },
+        };
+
+        act(() => {
+          root!.render(
+            <RouteComparisonSummary
+              result={resultWithBothPolylines}
+              origin="千代田区大手町"
+              destination="東京駅"
+            />,
+          );
+        });
+
+        // 初期状態: 高速道が推奨かつ選択中
+        expect(lastGoogleMapViewProps?.routeCoordinates).toEqual(expresswayPolyline);
+        expect(lastGoogleMapViewProps?.secondaryRouteCoordinates).toEqual(localPolyline);
+
+        // 一般道切り替えボタンを押下
+        const localButton = container!.querySelector('[aria-label="一般道ルートを強調表示"]');
+        expect(localButton).not.toBeNull();
+        act(() => {
+          localButton!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+        });
+
+        // アクティブなルートが一般道になり、副ルートが高速道になること
+        expect(lastGoogleMapViewProps?.routeCoordinates).toEqual(localPolyline);
+        expect(lastGoogleMapViewProps?.secondaryRouteCoordinates).toEqual(expresswayPolyline);
+      });
     });
 
-    expect(lastGoogleMapViewProps).not.toBeNull();
-    expect(lastGoogleMapViewProps?.originCoordinates).toEqual({
-      latitude: 35.6865,
-      longitude: 139.7644,
+    describe("境界値テスト", () => {
+      it("出発地・目的地の個別座標およびルートポリラインが指定された場合、漏れなくGoogleMapViewに伝達される", () => {
+        const resultWithPolyline: CompareRoutesResult = {
+          ...sampleResult,
+          expresswayRoute: {
+            ...sampleResult.expresswayRoute,
+            routePolyline: [
+              { lat: 35.6865, lng: 139.7644 },
+              { lat: 35.6812, lng: 139.7671 },
+            ],
+          },
+        };
+
+        act(() => {
+          root!.render(
+            <RouteComparisonSummary
+              result={resultWithPolyline}
+              origin="千代田区大手町永代通り"
+              destination="千代田区丸の内東京駅"
+              originCoordinates={{ latitude: 35.6865, longitude: 139.7644 }}
+              destinationCoordinates={{ latitude: 35.6812, longitude: 139.7671 }}
+            />,
+          );
+        });
+
+        expect(lastGoogleMapViewProps).not.toBeNull();
+        expect(lastGoogleMapViewProps?.originCoordinates).toEqual({
+          latitude: 35.6865,
+          longitude: 139.7644,
+        });
+        expect(lastGoogleMapViewProps?.destinationCoordinates).toEqual({
+          latitude: 35.6812,
+          longitude: 139.7671,
+        });
+        expect(lastGoogleMapViewProps?.routeCoordinates).toEqual([
+          { lat: 35.6865, lng: 139.7644 },
+          { lat: 35.6812, lng: 139.7671 },
+        ]);
+      });
     });
-    expect(lastGoogleMapViewProps?.destinationCoordinates).toEqual({
-      latitude: 35.6812,
-      longitude: 139.7671,
-    });
-    expect(lastGoogleMapViewProps?.routeCoordinates).toEqual([
-      { lat: 35.6865, lng: 139.7644 },
-      { lat: 35.6812, lng: 139.7671 },
-    ]);
-  });
-
-  it("passes secondaryRouteCoordinates and allows toggling between expressway and local routes", () => {
-    const expresswayPolyline = [
-      { lat: 35.6865, lng: 139.7644 },
-      { lat: 35.6812, lng: 139.7671 },
-    ];
-    const localPolyline = [
-      { lat: 35.6865, lng: 139.7644 },
-      { lat: 35.683, lng: 139.765 },
-      { lat: 35.6812, lng: 139.7671 },
-    ];
-
-    const resultWithBothPolylines: CompareRoutesResult = {
-      ...sampleResult,
-      recommendedRoute: "expressway",
-      expresswayRoute: {
-        ...sampleResult.expresswayRoute,
-        routePolyline: expresswayPolyline,
-      },
-      localRoute: {
-        ...sampleResult.localRoute,
-        routePolyline: localPolyline,
-      },
-    };
-
-    act(() => {
-      root!.render(
-        <RouteComparisonSummary
-          result={resultWithBothPolylines}
-          origin="千代田区大手町"
-          destination="東京駅"
-        />,
-      );
-    });
-
-    // Initial state: expressway recommended and selected
-    expect(lastGoogleMapViewProps?.routeCoordinates).toEqual(expresswayPolyline);
-    expect(lastGoogleMapViewProps?.secondaryRouteCoordinates).toEqual(localPolyline);
-
-    // Find and click the 一般道 switch button
-    const localButton = container!.querySelector('[aria-label="一般道ルートを強調表示"]');
-    expect(localButton).not.toBeNull();
-    act(() => {
-      localButton!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    });
-
-    // Now active route should be local, and secondary should be expressway
-    expect(lastGoogleMapViewProps?.routeCoordinates).toEqual(localPolyline);
-    expect(lastGoogleMapViewProps?.secondaryRouteCoordinates).toEqual(expresswayPolyline);
   });
 });
