@@ -4,6 +4,7 @@ node_modules/
 dist/
 web-build/
 *.tsbuildinfo
+expo-env.d.ts
 
 # Native builds
 ios/
