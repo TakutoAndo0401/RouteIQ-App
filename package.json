@@ -58,11 +58,17 @@
     "oxfmt": "^0.67.0",
     "oxlint": "^1.82.0",
     "typescript": "^5.3.3",
-    "vitest": "^3.0.7"
+    "vitest": "^4.1.11"
   },
   "overrides": {
     "@expo/dom-webview": "-",
-    "react-native-gesture-handler": "~2.20.2"
+    "@xmldom/xmldom": "^0.9.12",
+    "decode-uri-component": "^0.5.0",
+    "image-size": "2.0.4",
+    "postcss": "^8.5.28",
+    "react-native-gesture-handler": "~2.20.2",
+    "tar": "^7.5.22",
+    "uuid": "^11.1.1"
   },
   "packageManager": "pnpm@11.17.0",
   "expo": {
