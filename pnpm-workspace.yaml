@@ -11,7 +11,6 @@ overrides:
   "decode-uri-component": "^0.5.0"
   "image-size": "2.0.4"
   "postcss": "^8.5.28"
-  "tar": "^7.5.22"
   "uuid": "^11.1.1"
 patchedDependencies:
   image-size@2.0.4: patches/image-size@2.0.4.patch
