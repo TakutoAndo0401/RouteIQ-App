@@ -358,7 +358,8 @@ export function GoogleMapView({
           <Pressable
             style={({ pressed }) => [styles.controlMiniBtn, pressed && styles.controlBtnPressed]}
             onPress={() => handleZoom(true)}
-            hitSlop={4}
+            hitSlop={8}
+            accessibilityRole="button"
             accessibilityLabel="ズームイン"
           >
             <Plus size={16} color={colors.neutral[800]} />
@@ -367,7 +368,8 @@ export function GoogleMapView({
           <Pressable
             style={({ pressed }) => [styles.controlMiniBtn, pressed && styles.controlBtnPressed]}
             onPress={() => handleZoom(false)}
-            hitSlop={4}
+            hitSlop={8}
+            accessibilityRole="button"
             accessibilityLabel="ズームアウト"
           >
             <Minus size={16} color={colors.neutral[800]} />
@@ -376,10 +378,11 @@ export function GoogleMapView({
           <Pressable
             style={({ pressed }) => [styles.controlMiniBtn, pressed && styles.controlBtnPressed]}
             onPress={handleRecenter}
-            hitSlop={4}
+            hitSlop={8}
+            accessibilityRole="button"
             accessibilityLabel="ピン位置に合わせる"
           >
-            <Navigation size={14} color={colors.primary[600]} />
+            <Navigation size={15} color={colors.primary[600]} />
           </Pressable>
         </View>
       )}
@@ -415,7 +418,8 @@ export function GoogleMapView({
                 styles.singleControlBtn,
                 pressed && styles.controlBtnPressed,
               ]}
-              hitSlop={6}
+              hitSlop={8}
+              accessibilityRole="button"
               accessibilityLabel={isExpanded ? "地図を縮小" : "地図を拡大"}
             >
               {isExpanded ? (
@@ -432,7 +436,8 @@ export function GoogleMapView({
                 styles.singleControlBtn,
                 pressed && styles.controlBtnPressed,
               ]}
-              hitSlop={6}
+              hitSlop={8}
+              accessibilityRole="button"
               accessibilityLabel="外部地図アプリで開く"
             >
               <ExternalLink size={15} color={colors.primary[600]} />
@@ -577,8 +582,8 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   controlMiniBtn: {
-    width: 34,
-    height: 34,
+    width: 36,
+    height: 36,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#ffffff",
@@ -589,6 +594,7 @@ const styles = StyleSheet.create({
   },
   controlBtnPressed: {
     backgroundColor: "#f0f4f1",
+    transform: [{ scale: 0.94 }],
   },
   routeOverlayContainer: {
     position: "absolute",
@@ -638,9 +644,9 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   singleControlBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
+    width: 36,
+    height: 36,
+    borderRadius: 9,
     backgroundColor: colors.base.white,
     alignItems: "center",
     justifyContent: "center",

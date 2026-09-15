@@ -589,7 +589,8 @@ export function GoogleMapView({
                 styles.singleControlBtn,
                 pressed && styles.controlBtnPressed,
               ]}
-              hitSlop={6}
+              hitSlop={8}
+              accessibilityRole="button"
               accessibilityLabel={isExpanded ? "地図を縮小" : "地図を拡大"}
             >
               {isExpanded ? (
@@ -606,7 +607,8 @@ export function GoogleMapView({
                 styles.singleControlBtn,
                 pressed && styles.controlBtnPressed,
               ]}
-              hitSlop={6}
+              hitSlop={8}
+              accessibilityRole="button"
               accessibilityLabel="外部地図アプリで開く"
             >
               <ExternalLink size={15} color={colors.primary[600]} />
@@ -743,9 +745,9 @@ const styles = StyleSheet.create({
     zIndex: 100,
   },
   singleControlBtn: {
-    width: 34,
-    height: 34,
-    borderRadius: 8,
+    width: 36,
+    height: 36,
+    borderRadius: 9,
     backgroundColor: colors.base.white,
     borderWidth: 1,
     borderColor: colors.neutral[200],
@@ -759,6 +761,7 @@ const styles = StyleSheet.create({
   },
   controlBtnPressed: {
     backgroundColor: colors.neutral[100],
+    transform: [{ scale: 0.94 }],
   },
   routeOverlayContainer: {
     position: "absolute",
