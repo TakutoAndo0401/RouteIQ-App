@@ -236,10 +236,11 @@ export function RouteComparisonSummary({
                   styles.mapHeaderBtnPrimary,
                   pressed && styles.mapHeaderBtnPressed,
                 ]}
-                hitSlop={4}
+                hitSlop={6}
+                accessibilityRole="button"
                 accessibilityLabel="地図を全画面で表示"
               >
-                <Expand size={13} color={colors.primary[700]} />
+                <Expand size={15} color={colors.primary[700]} />
                 <Text style={[styles.mapHeaderBtnText, styles.mapHeaderBtnTextPrimary]}>
                   全画面
                 </Text>
@@ -276,10 +277,11 @@ export function RouteComparisonSummary({
                 pressed && styles.openExternalLinkPressed,
               ]}
               hitSlop={6}
+              accessibilityRole="button"
               accessibilityLabel="Googleマップアプリでナビを開始"
             >
               <Text style={styles.openExternalLinkText}>Googleマップで開く</Text>
-              <ExternalLink size={12} color={colors.primary[600]} />
+              <ExternalLink size={14} color={colors.primary[600]} />
             </Pressable>
           </View>
         </View>
@@ -336,7 +338,7 @@ export function RouteComparisonSummary({
                 accessibilityRole="button"
                 accessibilityLabel="Googleマップアプリで開く"
               >
-                <ExternalLink size={13} color={colors.base.white} />
+                <ExternalLink size={15} color={colors.base.white} />
                 <Text style={styles.fullscreenExternalText}>外部アプリ</Text>
               </Pressable>
             </View>
@@ -493,57 +495,67 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   mapHeaderBtn: {
+    minHeight: 32,
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
+    gap: 5,
     backgroundColor: colors.base.white,
     borderWidth: 1,
     borderColor: colors.neutral[200],
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
   },
   mapHeaderBtnPressed: {
     backgroundColor: colors.neutral[100],
+    transform: [{ scale: 0.96 }],
   },
   mapHeaderBtnPrimary: {
     backgroundColor: colors.primary[50],
     borderColor: colors.primary[200],
   },
   mapHeaderBtnText: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: "600",
     color: colors.neutral[700],
   },
   mapHeaderBtnTextPrimary: {
     color: colors.primary[700],
+    fontWeight: "700",
   },
   mapFooterBar: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 4,
-    marginTop: 2,
+    marginTop: 4,
   },
   mapHintText: {
-    fontSize: 11,
+    fontSize: 12,
     color: colors.neutral[500],
     flex: 1,
   },
   openExternalLink: {
+    minHeight: 32,
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
-    paddingVertical: 2,
-    paddingHorizontal: 4,
+    gap: 5,
+    paddingVertical: 5,
+    paddingHorizontal: 9,
+    borderRadius: 8,
+    backgroundColor: colors.neutral[50],
+    borderWidth: 1,
+    borderColor: colors.neutral[200],
   },
   openExternalLinkPressed: {
-    opacity: 0.6,
+    opacity: 0.7,
+    backgroundColor: colors.neutral[100],
+    transform: [{ scale: 0.96 }],
   },
   openExternalLinkText: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: "600",
-    color: colors.primary[600],
+    color: colors.primary[700],
   },
 
   // 全画面モーダル用スタイル
@@ -556,8 +568,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 16,
-    paddingBottom: 10,
-    backgroundColor: colors.base.white,
+    paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: colors.neutral[200],
   },
@@ -566,9 +577,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 6,
-    minHeight: 44,
-    minWidth: 44,
-    paddingHorizontal: 8,
+    padding: 6,
     borderRadius: 8,
   },
   fullscreenCloseBtnPressed: {
@@ -576,7 +585,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.neutral[100],
   },
   fullscreenCloseText: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: "600",
     color: colors.neutral[800],
   },
@@ -585,14 +594,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 6,
-    height: 36,
+    height: 38,
     paddingHorizontal: 14,
-    borderRadius: 18,
+    borderRadius: 19,
     backgroundColor: colors.primary[500],
   },
   fullscreenExternalBtnPressed: {
     backgroundColor: colors.primary[700],
     opacity: 0.9,
+    transform: [{ scale: 0.97 }],
   },
   fullscreenExternalText: {
     fontSize: 13,
@@ -608,17 +618,17 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: colors.neutral[100],
-    borderRadius: 8,
-    padding: 2,
-    gap: 2,
+    borderRadius: 10,
+    padding: 3,
   },
   routeSwitchBtn: {
+    minHeight: 32,
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
+    gap: 5,
+    paddingHorizontal: 11,
+    paddingVertical: 5,
+    borderRadius: 8,
   },
   routeSwitchBtnActive: {
     backgroundColor: colors.base.white,
@@ -632,9 +642,9 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   routeSwitchDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
   },
   routeSwitchDotActive: {
     backgroundColor: colors.route.active,
@@ -643,7 +653,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.route.alternative,
   },
   routeSwitchText: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: "600",
     color: colors.neutral[600],
   },

@@ -123,6 +123,7 @@ function ConditionForm({
                     isSelected && styles.fuelChipActive,
                     pressed && styles.fuelChipPressed,
                   ]}
+                  hitSlop={8}
                   accessibilityRole="button"
                   accessibilityLabel={`${item.label} ${item.value}円/Lを設定`}
                 >
@@ -414,12 +415,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   fuelAverageTitle: {
-    fontSize: 11,
-    fontWeight: "600",
-    color: colors.neutral[700],
+    fontSize: 12,
+    fontWeight: "700",
+    color: colors.neutral[800],
   },
   fuelAverageDate: {
-    fontSize: 10,
+    fontSize: 11,
     color: colors.neutral[500],
   },
   fuelChipsRow: {
@@ -428,49 +429,54 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
   },
   fuelChip: {
-    paddingHorizontal: 10,
+    minHeight: 32,
+    paddingHorizontal: 11,
     paddingVertical: 6,
-    borderRadius: 6,
+    borderRadius: 8,
     backgroundColor: colors.base.white,
     borderWidth: 1,
     borderColor: colors.neutral[300],
+    justifyContent: "center",
+    alignItems: "center",
   },
   fuelChipActive: {
     backgroundColor: colors.primary[50],
     borderColor: colors.primary[500],
   },
   fuelChipPressed: {
-    opacity: 0.7,
+    opacity: 0.8,
+    transform: [{ scale: 0.97 }],
   },
   fuelChipLabel: {
     fontSize: 12,
-    fontWeight: "500",
+    fontWeight: "600",
     color: colors.neutral[800],
   },
   fuelChipTextActive: {
     color: colors.primary[700],
-    fontWeight: "600",
+    fontWeight: "700",
   },
   fuelAverageSource: {
-    fontSize: 9,
-    color: colors.neutral[400],
+    fontSize: 11,
+    color: colors.neutral[500],
   },
   vehicleSection: {
     gap: 8,
   },
   sectionLabel: {
-    fontSize: 11,
-    lineHeight: 14,
-    fontWeight: "600",
-    color: colors.neutral[700], // Figma: #56625d
+    fontSize: 13,
+    lineHeight: 17,
+    fontWeight: "700",
+    color: colors.neutral[800],
   },
   radioGroup: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 16,
-    paddingVertical: 4,
+    gap: 12,
+    paddingVertical: 2,
+    flexWrap: "wrap",
   },
   saveBtn: {
-    marginTop: 6,
+    marginTop: 8,
   },
 });

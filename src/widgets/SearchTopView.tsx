@@ -82,12 +82,13 @@ export function SearchTopView({
             onMapSelectPress={() => onMapSelectPress("origin")}
           />
 
-          {/* Swap Button (Figma: swap-button 32x32) */}
+          {/* Swap Button (36x36 with 8pt hitSlop for 52pt touch target) */}
           <View style={styles.swapContainer}>
             <Pressable
               onPress={onSwapOriginDestination}
               style={({ pressed }) => [styles.swapButton, pressed && styles.swapButtonPressed]}
               hitSlop={8}
+              accessibilityRole="button"
               accessibilityLabel="出発地と目的地を入れ替える"
             >
               <ArrowUpDown size={16} color={colors.neutral[700]} />
@@ -187,28 +188,34 @@ const styles = StyleSheet.create({
   swapContainer: {
     alignItems: "center",
     justifyContent: "center",
-    marginVertical: 2,
+    marginVertical: 4,
   },
   swapButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: colors.base.white,
     borderWidth: 1,
     borderColor: colors.neutral[200],
     alignItems: "center",
     justifyContent: "center",
+    shadowColor: "#000000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    elevation: 2,
   },
   swapButtonPressed: {
     backgroundColor: colors.neutral[100],
+    transform: [{ scale: 0.94 }],
   },
   historySection: {
     gap: 8,
     width: "100%",
   },
   historySectionTitle: {
-    fontSize: 12,
-    lineHeight: 16,
+    fontSize: 13,
+    lineHeight: 17,
     fontWeight: "bold",
     color: colors.neutral[700], // #56625d
   },

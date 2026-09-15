@@ -142,6 +142,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   actionButton: {
-    paddingHorizontal: 24,
+    paddingHorizontal: 28,
+    minWidth: 160,
   },
 });
