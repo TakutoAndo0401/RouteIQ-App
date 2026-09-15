@@ -48,8 +48,14 @@ export function BackHeader({
           {title}
         </Text>
       </View>
-      <Pressable onPress={onBackPress} style={styles.backBtn} hitSlop={8}>
-        <ArrowLeft size={16} color={colors.primary[500]} />
+      <Pressable
+        onPress={onBackPress}
+        style={styles.backBtn}
+        hitSlop={6}
+        accessibilityRole="button"
+        accessibilityLabel={backLabel || "戻る"}
+      >
+        <ArrowLeft size={18} color={colors.primary[500]} />
         <Text style={styles.backLabel}>{backLabel}</Text>
       </Pressable>
     </View>
@@ -79,24 +85,27 @@ const styles = StyleSheet.create({
   },
   backHeader: {
     position: "relative",
-    paddingHorizontal: 20,
-    paddingVertical: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "flex-start",
-    minHeight: 48,
+    minHeight: 50,
     width: "100%",
   },
   backBtn: {
+    minHeight: 44,
+    paddingVertical: 6,
+    paddingHorizontal: 4,
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
+    gap: 6,
     zIndex: 1,
   },
   backLabel: {
-    fontSize: 14,
-    lineHeight: 18,
-    fontWeight: "500",
+    fontSize: 15,
+    lineHeight: 20,
+    fontWeight: "600",
     color: colors.primary[500],
   },
   backTitleContainer: {

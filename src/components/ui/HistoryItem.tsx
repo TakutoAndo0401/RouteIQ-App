@@ -25,7 +25,7 @@ export function HistoryItem({
       accessibilityRole="button"
     >
       <View style={styles.left}>
-        <MapPin size={16} color={colors.primary[500]} style={styles.pinIcon} />
+        <MapPin size={18} color={colors.primary[500]} style={styles.pinIcon} />
         <Text style={styles.routeText} numberOfLines={1} ellipsizeMode="tail">
           {routeText}
         </Text>
@@ -45,7 +45,7 @@ export function HistoryItem({
             hitSlop={8}
             accessibilityLabel="履歴から削除"
           >
-            <X size={10} color={colors.neutral[700]} />
+            <X size={13} color={colors.neutral[700]} />
           </Pressable>
         )}
       </View>
@@ -58,8 +58,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.base.white,
     borderWidth: 1,
     borderColor: colors.neutral[200],
-    borderRadius: 12,
-    padding: 12,
+    borderRadius: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
@@ -68,38 +69,38 @@ const styles = StyleSheet.create({
   left: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: 10,
     flex: 1,
     minWidth: 0,
-    marginRight: 8,
+    marginRight: 10,
   },
   pinIcon: {
     flexShrink: 0,
   },
   routeText: {
     flex: 1,
-    fontSize: 13,
-    lineHeight: 17,
+    fontSize: 14,
+    lineHeight: 18,
     fontWeight: "600",
     color: colors.neutral[900],
   },
   right: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: 10,
     flexShrink: 0,
   },
   metaText: {
-    fontSize: 11,
-    lineHeight: 14,
+    fontSize: 12,
+    lineHeight: 16,
     fontWeight: "normal",
     color: colors.neutral[600],
     flexShrink: 0,
   },
   deleteBtn: {
-    width: 20,
-    height: 20,
-    borderRadius: 6,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     borderWidth: 1,
     borderColor: colors.neutral[200],
     backgroundColor: colors.neutral[50],
@@ -108,6 +109,7 @@ const styles = StyleSheet.create({
   },
   deleteBtnPressed: {
     backgroundColor: colors.neutral[200],
+    transform: [{ scale: 0.95 }],
   },
   pressed: {
     opacity: 0.8,

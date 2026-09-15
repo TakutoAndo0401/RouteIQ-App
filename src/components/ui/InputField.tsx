@@ -95,12 +95,12 @@ const styles = StyleSheet.create({
   inputContainer: {
     backgroundColor: colors.neutral[50], // #f4f6f4
     borderRadius: 100,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    minHeight: 45,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    minHeight: 48,
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+    gap: 8,
     overflow: "hidden",
   },
   input: {
@@ -116,7 +116,7 @@ const styles = StyleSheet.create({
   chips: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
+    gap: 6,
     flexShrink: 0,
   },
 });

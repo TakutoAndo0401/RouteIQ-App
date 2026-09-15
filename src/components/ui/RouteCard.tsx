@@ -145,7 +145,13 @@ export function RouteCard({
         <View style={styles.breakdownSection}>
           <Pressable
             onPress={() => setBreakdownOpen((prev) => !prev)}
-            style={styles.breakdownHeader}
+            style={({ pressed }) => [
+              styles.breakdownHeader,
+              pressed && styles.breakdownHeaderPressed,
+            ]}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel="料金内訳を表示"
           >
             <Text style={styles.breakdownTitle}>料金内訳</Text>
             {breakdownOpen ? (
@@ -265,10 +271,15 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   breakdownHeader: {
+    minHeight: 32,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingVertical: 2,
+    paddingVertical: 5,
+    paddingHorizontal: 2,
+  },
+  breakdownHeaderPressed: {
+    opacity: 0.7,
   },
   breakdownTitle: {
     fontSize: 12,

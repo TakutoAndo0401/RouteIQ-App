@@ -26,6 +26,7 @@ export function ChipButton({
       accessibilityRole="button"
       accessibilityLabel={label}
       accessibilityState={{ disabled }}
+      hitSlop={8}
       style={({ pressed }) => [
         styles.chip,
         selected ? styles.chipSelected : styles.chipUnselected,
@@ -50,8 +51,9 @@ export function ChipButton({
 
 const styles = StyleSheet.create({
   chip: {
+    minHeight: 30,
     paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingVertical: 5,
     borderRadius: 100,
     borderWidth: 1,
     borderColor: colors.neutral[200],
@@ -60,19 +62,22 @@ const styles = StyleSheet.create({
   },
   chipSelected: {
     backgroundColor: colors.primary[500],
+    borderColor: colors.primary[500],
   },
   chipUnselected: {
     backgroundColor: colors.base.white,
+    borderColor: colors.neutral[200],
   },
   chipDisabled: {
-    opacity: 0.7,
+    opacity: 0.6,
   },
   pressed: {
     opacity: 0.8,
+    transform: [{ scale: 0.96 }],
   },
   text: {
-    fontSize: 11,
-    lineHeight: 14,
+    fontSize: 12,
+    lineHeight: 16,
     fontWeight: "600",
   },
   textSelected: {

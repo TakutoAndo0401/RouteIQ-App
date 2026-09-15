@@ -66,14 +66,14 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 8,
-    height: 51, // Matches button height so footer doesn't shift
+    gap: 10,
+    height: 48, // Matches button minHeight so footer doesn't shift
   },
   loadingText: {
-    fontSize: 13,
-    lineHeight: 16,
+    fontSize: 14,
+    lineHeight: 18,
     color: colors.neutral[900], // #1C2420 in Figma
-    fontWeight: "normal",
+    fontWeight: "500",
   },
   button: {
     width: "100%",

@@ -46,9 +46,12 @@ export function Accordion({
                 e.stopPropagation();
                 onEditPress();
               }}
+              accessibilityRole="button"
+              accessibilityLabel="詳細条件を編集"
+              hitSlop={8}
               style={({ pressed }) => [styles.editBtn, pressed && styles.editBtnPressed]}
             >
-              <Pencil size={14} color={colors.neutral[700]} />
+              <Pencil size={13} color={colors.neutral[700]} />
               <Text style={styles.editText}>編集</Text>
             </Pressable>
           )}
@@ -110,6 +113,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   editBtn: {
+    minHeight: 30,
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: colors.base.white,
@@ -117,16 +121,17 @@ const styles = StyleSheet.create({
     borderColor: colors.neutral[200],
     borderRadius: 999,
     paddingHorizontal: 10,
-    paddingVertical: 6,
-    gap: 6,
+    paddingVertical: 5,
+    gap: 4,
   },
   editBtnPressed: {
-    backgroundColor: colors.neutral[50],
+    backgroundColor: colors.neutral[100],
+    transform: [{ scale: 0.96 }],
   },
   editText: {
     fontSize: 12,
     lineHeight: 16,
-    fontWeight: "bold",
+    fontWeight: "600",
     color: colors.neutral[700],
   },
   content: {

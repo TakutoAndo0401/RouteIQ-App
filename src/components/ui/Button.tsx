@@ -37,6 +37,7 @@ export function Button({
   return (
     <Pressable
       accessibilityRole="button"
+      accessibilityState={{ disabled: isDisabled || loading }}
       onPress={onPress}
       disabled={isDisabled || loading}
       style={({ pressed }) => [
@@ -78,8 +79,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   regular: {
-    paddingVertical: 16,
-    paddingHorizontal: 16,
+    minHeight: 48,
+    paddingVertical: 13,
+    paddingHorizontal: 22,
     // Figma: drop-shadow [0px_4px_12px_rgba(78,106,86,0.17)]
     shadowColor: colors.primary[500],
     shadowOffset: { width: 0, height: 4 },
@@ -88,9 +90,9 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   compact: {
-    height: 46,
+    minHeight: 42,
     paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingVertical: 10,
   },
   solid: {
     backgroundColor: colors.primary[500],
@@ -103,6 +105,7 @@ const styles = StyleSheet.create({
   pressed: {
     backgroundColor: colors.primary[700], // #314335 in Figma
     opacity: 0.9,
+    transform: [{ scale: 0.985 }],
   },
   disabled: {
     backgroundColor: colors.neutral[200],
@@ -119,11 +122,11 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   regularText: {
-    fontSize: 16,
-    lineHeight: 20,
+    fontSize: 15,
+    lineHeight: 19,
   },
   compactText: {
-    fontSize: 15,
+    fontSize: 14,
     lineHeight: 18,
   },
   solidText: {

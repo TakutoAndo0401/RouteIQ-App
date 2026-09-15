@@ -23,6 +23,10 @@ export function RadioButton({
     <Pressable
       onPress={onPress}
       disabled={disabled}
+      accessibilityRole="radio"
+      accessibilityLabel={label}
+      accessibilityState={{ checked: selected, disabled }}
+      hitSlop={6}
       style={({ pressed }) => [
         styles.container,
         pressed && !disabled && styles.pressed,
@@ -46,9 +50,12 @@ export function RadioButton({
 
 const styles = StyleSheet.create({
   container: {
+    minHeight: 40,
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 4,
+    gap: 10,
   },
   indicator: {
     width: 20,
@@ -63,7 +70,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.base.white,
   },
   indicatorUnselected: {
-    borderColor: colors.neutral[200],
+    borderColor: colors.neutral[300],
     backgroundColor: colors.base.white,
   },
   indicatorDot: {
@@ -75,10 +82,10 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     lineHeight: 18,
-    fontWeight: "500",
+    fontWeight: "600",
   },
   labelSelected: {
-    color: colors.primary[500],
+    color: colors.primary[600],
   },
   labelUnselected: {
     color: colors.neutral[700],
