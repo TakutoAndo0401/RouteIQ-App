@@ -114,10 +114,11 @@ export function MapSelectModal({
   return (
     <Modal
       visible={visible}
-      transparent={true}
+      transparent={false}
       animationType="slide"
       onRequestClose={handleClose}
       statusBarTranslucent={true}
+      presentationStyle="fullScreen"
     >
       <View style={styles.modalOverlay}>
         <SafeAreaView style={styles.safeAreaContainer} edges={["top", "bottom", "left", "right"]}>
@@ -195,14 +196,14 @@ export function MapSelectModal({
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.4)",
-    justifyContent: "center",
-    alignItems: "center",
+    width: "100%",
+    height: "100%",
+    backgroundColor: colors.base.white,
   },
   safeAreaContainer: {
     flex: 1,
     width: "100%",
-    maxWidth: Platform.OS === "web" ? 480 : undefined,
+    height: "100%",
     backgroundColor: colors.base.white,
     overflow: "hidden",
   },

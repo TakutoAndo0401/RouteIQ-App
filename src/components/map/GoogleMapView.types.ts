@@ -11,6 +11,8 @@ export interface GoogleMapViewProps {
   isRouteMap?: boolean;
   originLabel?: string;
   destinationLabel?: string;
+  originPinLabel?: string;
+  destinationPinLabel?: string;
   originCoordinates?: Coordinates;
   destinationCoordinates?: Coordinates;
   routeCoordinates?: Array<{ lat: number; lng: number }> | Coordinates[];

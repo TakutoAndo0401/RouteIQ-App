@@ -22,12 +22,21 @@ vi.mock("react-native-safe-area-context", () => ({
   SafeAreaProvider: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
 }));
 
+let lastModalProps: Record<string, unknown> | null = null;
+
 vi.mock("react-native", async () => {
   const actual = await vi.importActual<Record<string, unknown>>("react-native");
   return {
     ...actual,
-    Modal: ({ children, visible }: { children?: React.ReactNode; visible?: boolean }) =>
-      visible ? children : null,
+    Modal: (props: {
+      children?: React.ReactNode;
+      visible?: boolean;
+      transparent?: boolean;
+      presentationStyle?: string;
+    }) => {
+      lastModalProps = props;
+      return props.visible ? <div>{props.children}</div> : null;
+    },
   };
 });
 
@@ -65,6 +74,7 @@ describe("地図位置選択モーダル (MapSelectModal) およびボタン状�
   beforeEach(() => {
     vi.useFakeTimers();
     mockLocationSelectCallback = null;
+    lastModalProps = null;
     container = document.createElement("div");
     document.body.appendChild(container);
     root = ReactDOM.createRoot(container);
@@ -234,6 +244,25 @@ describe("地図位置選択モーダル (MapSelectModal) およびボタン状�
           closeBtn?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
         });
         expect(onCloseMock).toHaveBeenCalled();
+      });
+
+      it("背後が透けないよう、Modalはtransparent=falseかつpresentationStyle='fullScreen'で完全不透明描画される", async () => {
+        await act(async () => {
+          root!.render(
+            <MapSelectModal
+              visible={true}
+              target="origin"
+              currentAddress="東京駅"
+              onClose={vi.fn()}
+              onConfirm={vi.fn()}
+            />,
+          );
+          await Promise.resolve();
+        });
+
+        expect(lastModalProps).not.toBeNull();
+        expect(lastModalProps?.transparent).toBe(false);
+        expect(lastModalProps?.presentationStyle).toBe("fullScreen");
       });
     });
   });

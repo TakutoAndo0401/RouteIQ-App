@@ -40,6 +40,8 @@ export function GoogleMapView({
   isRouteMap = false,
   originLabel = "用賀IC",
   destinationLabel = "御殿場IC",
+  originPinLabel = "出発地",
+  destinationPinLabel = "目的地",
   originCoordinates,
   destinationCoordinates,
   routeCoordinates,
@@ -213,8 +215,8 @@ export function GoogleMapView({
     .leaflet-control-attribution { font-size: 9px !important; background: #ffffff !important; padding: 0 4px !important; border-radius: 4px; }
     .leaflet-bar { border: none !important; box-shadow: 0 2px 6px rgba(0,0,0,0.12) !important; border-radius: 8px !important; overflow: hidden; }
     .leaflet-bar a { background: #fff !important; color: #1c2420 !important; width: 32px !important; height: 32px !important; line-height: 32px !important; font-size: 15px !important; font-weight: bold !important; }
-    .route-pin { display: flex; align-items: center; gap: 4px; background: white; padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: bold; box-shadow: 0 2px 6px rgba(0,0,0,0.15); border: 1px solid #dce3dd; white-space: nowrap; }
-    .route-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .route-pin { display: inline-flex; align-items: center; justify-content: center; gap: 6px; background: #ffffff; padding: 5px 12px; border-radius: 16px; font-size: 12px; line-height: 16px; font-weight: 700; color: #1c2420; box-shadow: 0 3px 8px rgba(0,0,0,0.18); border: 1.5px solid #dce3dd; white-space: nowrap; min-width: 68px; }
+    .route-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
   </style>
 </head>
 <body>
@@ -237,13 +239,15 @@ export function GoogleMapView({
 
     const origIcon = L.divIcon({
       className: '',
-      html: '<div class="route-pin"><div class="route-dot" style="background:${colors.route.origin};"></div><span>${escapeHtml(originLabel)}</span></div>',
-      iconAnchor: [30, 15]
+      html: '<div class="route-pin"><div class="route-dot" style="background:${colors.route.origin};"></div><span>${escapeHtml(originPinLabel)}</span></div>',
+      iconSize: [76, 30],
+      iconAnchor: [38, 15]
     });
     const destIcon = L.divIcon({
       className: '',
-      html: '<div class="route-pin"><div class="route-dot" style="background:${colors.route.destination};"></div><span>${escapeHtml(destinationLabel)}</span></div>',
-      iconAnchor: [30, 15]
+      html: '<div class="route-pin"><div class="route-dot" style="background:${colors.route.destination};"></div><span>${escapeHtml(destinationPinLabel)}</span></div>',
+      iconSize: [76, 30],
+      iconAnchor: [38, 15]
     });
 
     L.marker(orig, { icon: origIcon }).addTo(map);
@@ -491,8 +495,8 @@ export function GoogleMapView({
     isRouteMap,
     originCoords,
     destCoords,
-    originLabel,
-    destinationLabel,
+    originPinLabel,
+    destinationPinLabel,
     pinLabel,
     initialZoom,
     initialMapCoords,

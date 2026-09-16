@@ -293,6 +293,7 @@ export function RouteComparisonSummary({
       {/* 全画面地図モーダル */}
       <Modal
         visible={isFullscreenModalOpen}
+        transparent={false}
         animationType="slide"
         onRequestClose={() => setIsFullscreenModalOpen(false)}
         statusBarTranslucent={true}

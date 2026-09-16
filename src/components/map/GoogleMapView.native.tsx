@@ -37,6 +37,8 @@ export function GoogleMapView({
   isRouteMap = false,
   originLabel = "用賀IC",
   destinationLabel = "御殿場IC",
+  originPinLabel = "出発地",
+  destinationPinLabel = "目的地",
   originCoordinates,
   destinationCoordinates,
   routeCoordinates,
@@ -303,18 +305,18 @@ export function GoogleMapView({
             />
 
             {/* 出発地マーカー */}
-            <Marker coordinate={originCoords} anchor={{ x: 0.5, y: 1 }}>
+            <Marker coordinate={originCoords} anchor={{ x: 0.5, y: 0.5 }}>
               <View style={styles.nativeRoutePin}>
                 <View style={[styles.routeDot, { backgroundColor: colors.route.origin }]} />
-                <Text style={styles.routePinText}>{originLabel}</Text>
+                <Text style={styles.routePinText}>{originPinLabel}</Text>
               </View>
             </Marker>
 
             {/* 目的地マーカー */}
-            <Marker coordinate={destCoords} anchor={{ x: 0.5, y: 1 }}>
+            <Marker coordinate={destCoords} anchor={{ x: 0.5, y: 0.5 }}>
               <View style={styles.nativeRoutePin}>
                 <View style={[styles.routeDot, { backgroundColor: colors.route.destination }]} />
-                <Text style={styles.routePinText}>{destinationLabel}</Text>
+                <Text style={styles.routePinText}>{destinationPinLabel}</Text>
               </View>
             </Marker>
           </>
@@ -542,26 +544,29 @@ const styles = StyleSheet.create({
   nativeRoutePin: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
     backgroundColor: "#ffffff",
-    paddingVertical: 3,
-    paddingHorizontal: 8,
-    borderRadius: 12,
-    borderWidth: 1,
+    paddingVertical: 5,
+    paddingHorizontal: 12,
+    borderRadius: 16,
+    borderWidth: 1.5,
     borderColor: "#dce3dd",
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    elevation: 3,
-    gap: 4,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.18,
+    shadowRadius: 6,
+    elevation: 4,
+    gap: 6,
+    minWidth: 70,
   },
   routeDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
   },
   routePinText: {
-    fontSize: 11,
+    fontSize: 12,
+    lineHeight: 16,
     fontWeight: "700",
     color: "#1c2420",
   },

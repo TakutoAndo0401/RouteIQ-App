@@ -29,17 +29,20 @@ vi.mock("react-native", async () => {
       children,
       visible,
       statusBarTranslucent,
+      transparent,
       onRequestClose,
     }: {
       children?: React.ReactNode;
       visible?: boolean;
       statusBarTranslucent?: boolean;
+      transparent?: boolean;
       onRequestClose?: () => void;
     }) =>
       visible ? (
         <div
           data-testid="fullscreen-modal"
           data-statusbartranslucent={String(statusBarTranslucent)}
+          data-transparent={String(transparent)}
         >
           <button data-testid="modal-hardware-back" onClick={() => onRequestClose?.()} />
           {children}
@@ -247,6 +250,8 @@ describe("ルート比較サマリー画面 (RouteComparisonSummary)", () => {
         expect(modalElement).not.toBeNull();
         // Androidのエッジトゥエッジ対応（statusBarTranslucentが有効）
         expect(modalElement?.getAttribute("data-statusbartranslucent")).toBe("true");
+        // 背後が透けないよう、transparent={false} が設定されていることを検証
+        expect(modalElement?.getAttribute("data-transparent")).toBe("false");
 
         const closeButton = container!.querySelector('[aria-label="全画面表示を閉じる"]');
         expect(closeButton).not.toBeNull();
