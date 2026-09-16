@@ -215,8 +215,11 @@ export function GoogleMapView({
     .leaflet-control-attribution { font-size: 9px !important; background: #ffffff !important; padding: 0 4px !important; border-radius: 4px; }
     .leaflet-bar { border: none !important; box-shadow: 0 2px 6px rgba(0,0,0,0.12) !important; border-radius: 8px !important; overflow: hidden; }
     .leaflet-bar a { background: #fff !important; color: #1c2420 !important; width: 32px !important; height: 32px !important; line-height: 32px !important; font-size: 15px !important; font-weight: bold !important; }
-    .route-pin { display: inline-flex; align-items: center; justify-content: center; gap: 6px; background: #ffffff; padding: 5px 12px; border-radius: 16px; font-size: 12px; line-height: 16px; font-weight: 700; color: #1c2420; box-shadow: 0 3px 8px rgba(0,0,0,0.18); border: 1.5px solid #dce3dd; white-space: nowrap; min-width: 68px; }
-    .route-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .custom-pin-container { display: flex; flex-direction: column; align-items: center; width: 96px; pointer-events: none; }
+    .pin-balloon { color: #ffffff; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 700; letter-spacing: 0.2px; box-shadow: 0 4px 8px rgba(28, 36, 32, 0.25); white-space: nowrap; }
+    .pin-arrow { width: 0; height: 0; border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 5px solid; margin-bottom: 1px; }
+    .pin-core { position: relative; width: 14px; height: 14px; display: flex; align-items: center; justify-content: center; pointer-events: none; }
+    .pin-dot { width: 12px; height: 12px; border: 2px solid #ffffff; border-radius: 50%; box-shadow: 0 2px 4px rgba(0,0,0,0.35); position: relative; z-index: 2; }
   </style>
 </head>
 <body>
@@ -239,15 +242,27 @@ export function GoogleMapView({
 
     const origIcon = L.divIcon({
       className: '',
-      html: '<div class="route-pin"><div class="route-dot" style="background:${colors.route.origin};"></div><span>${escapeHtml(originPinLabel)}</span></div>',
-      iconSize: [76, 30],
-      iconAnchor: [38, 15]
+      html: '<div class="custom-pin-container" style="width: 96px;">' +
+        '<div class="pin-balloon" style="background: ${colors.route.origin};"><span>${escapeHtml(originPinLabel)}</span></div>' +
+        '<div class="pin-arrow" style="border-top-color: ${colors.route.origin};"></div>' +
+        '<div class="pin-core">' +
+          '<div class="pin-dot" style="background: ${colors.route.origin};"></div>' +
+        '</div>' +
+      '</div>',
+      iconSize: [96, 42],
+      iconAnchor: [48, 35],
     });
     const destIcon = L.divIcon({
       className: '',
-      html: '<div class="route-pin"><div class="route-dot" style="background:${colors.route.destination};"></div><span>${escapeHtml(destinationPinLabel)}</span></div>',
-      iconSize: [76, 30],
-      iconAnchor: [38, 15]
+      html: '<div class="custom-pin-container" style="width: 96px;">' +
+        '<div class="pin-balloon" style="background: ${colors.route.destination};"><span>${escapeHtml(destinationPinLabel)}</span></div>' +
+        '<div class="pin-arrow" style="border-top-color: ${colors.route.destination};"></div>' +
+        '<div class="pin-core">' +
+          '<div class="pin-dot" style="background: ${colors.route.destination};"></div>' +
+        '</div>' +
+      '</div>',
+      iconSize: [96, 42],
+      iconAnchor: [48, 35],
     });
 
     L.marker(orig, { icon: origIcon }).addTo(map);

@@ -48,6 +48,8 @@ export const providerRouteResultSchema = z.object({
   dataSources: z.array(z.string()),
   apiFailures: z.array(z.string()),
   routePolyline: z.array(routeCoordinateSchema).optional(),
+  highwayNames: z.array(z.string()).optional(),
+  majorHighway: z.string().optional(),
 });
 
 export const routeCostSummarySchema = z.object({
@@ -60,6 +62,8 @@ export const routeCostSummarySchema = z.object({
   totalCostYen: z.number().nullable(),
   trafficSummary: z.string(),
   routePolyline: z.array(routeCoordinateSchema).optional(),
+  highwayNames: z.array(z.string()).optional(),
+  majorHighway: z.string().optional(),
 });
 
 export const routeComparisonSchema = z.object({

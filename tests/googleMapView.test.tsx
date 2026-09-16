@@ -67,11 +67,12 @@ describe("GoogleMapView（ルート比較ピンの文言・スタイリング検
       expect(srcDoc).not.toContain("<span>東京都世田谷区用賀4丁目99-99 非常に長い住所</span>");
       expect(srcDoc).not.toContain("<span>静岡県御殿場市深沢99-99 非常に長い住所</span>");
 
-      // ピンサイズと文字途切れ防止のスタイルが適用されている
-      expect(srcDoc).toContain("min-width: 68px");
-      expect(srcDoc).toContain("padding: 5px 12px");
+      // バルーン型ピンのコンテナと文字途切れ防止のスタイルが適用されている
+      expect(srcDoc).toContain("custom-pin-container");
+      expect(srcDoc).toContain("pin-balloon");
+      expect(srcDoc).toContain("width: 96px");
       expect(srcDoc).toContain("white-space: nowrap");
-      expect(srcDoc).toContain("font-size: 12px");
+      expect(srcDoc).toContain("font-size: 11px");
     });
 
     it("カスタムの originPinLabel / destinationPinLabel が指定された場合は指定した文言がピンに反映される", () => {

@@ -94,6 +94,42 @@ export function RouteComparisonSummary({
   const expresswayToll = result.expresswayRoute.tollYen ?? 3250;
   const distanceKm = activeRoute.distanceKm || (selectedRouteType === "expressway" ? 82.5 : 78.0);
 
+  const viaHighway =
+    result.expresswayRoute.majorHighway || result.expresswayRoute.highwayNames?.[0];
+
+  const highwayBreakdown = React.useMemo(() => {
+    const toll = result.expresswayRoute.tollYen;
+    if (toll === null || toll === 0) {
+      return undefined;
+    }
+
+    const tollStr = `¥${toll.toLocaleString()}`;
+    const highwayNames = result.expresswayRoute.highwayNames ?? [];
+    const major = result.expresswayRoute.majorHighway;
+
+    if (highwayNames.length === 1) {
+      return [{ label: highwayNames[0], amount: tollStr }];
+    }
+
+    if (highwayNames.length > 1) {
+      const primary = major || highwayNames[0];
+      const others = highwayNames.filter((name) => name !== primary);
+      if (others.length > 0) {
+        return [
+          { label: primary, amount: tollStr },
+          ...others.map((name) => ({ label: `（経由: ${name}）`, amount: "含む" })),
+        ];
+      }
+      return [{ label: primary, amount: tollStr }];
+    }
+
+    if (major) {
+      return [{ label: major, amount: tollStr }];
+    }
+
+    return [{ label: "高速・有料道路利用料", amount: tollStr }];
+  }, [result.expresswayRoute]);
+
   const handleOpenExternalGoogleMaps = () => {
     const url = buildGoogleMapsDirectionsUrl(origin, destination);
     void Linking.openURL(url);
@@ -127,15 +163,13 @@ export function RouteComparisonSummary({
           <RouteCard
             type="highway"
             badgeLabel="高速道路ルート"
+            viaHighway={viaHighway}
             durationText={formatDuration(result.expresswayRoute.durationMinutes || 75)}
             etaText={formatETA(result.expresswayRoute.durationMinutes || 75, baseDate)}
             tollText={`料金: ¥${expresswayToll.toLocaleString()}`}
             fuelText={`燃料費: 約${result.expresswayRoute.fuelCostYen.toLocaleString()}円`}
             isRecommended={isExpresswayRecommended}
-            tollBreakdown={[
-              { label: "首都高速", amount: "¥1,950" },
-              { label: "東名高速", amount: "¥1,300" },
-            ]}
+            tollBreakdown={highwayBreakdown}
             totalTollText={`¥${expresswayToll.toLocaleString()}`}
             onPress={() => setSelectedRouteType("expressway")}
             style={selectedRouteType === "expressway" ? styles.selectedCardHighlight : undefined}

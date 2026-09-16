@@ -2,6 +2,8 @@ import { describe, expect, it, vi } from "vitest";
 import {
   GoogleRoutesProvider,
   decodePolyline,
+  extractHighwayNames,
+  isHighwayName,
   parseDurationMinutes,
   parseToll,
   resolveGoogleDepartureTime,
@@ -284,6 +286,118 @@ describe("Google Routes APIプロバイダー (GoogleRoutesProvider)", () => {
             routeType: "expressway",
           }),
         ).rejects.toThrow("Google Routes API のレスポンスにルート情報が含まれていませんでした");
+      });
+
+      it("expresswayルートの場合、descriptionやstepsから高速道路名が抽出されて結果に含まれる", async () => {
+        globalThis.fetch = vi.fn().mockResolvedValue({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            routes: [
+              {
+                distanceMeters: 33500,
+                duration: "2700s",
+                description: "首都高速神奈川1号横羽線",
+                legs: [
+                  {
+                    steps: [
+                      {
+                        navigationInstruction: {
+                          instructions: "首都高速都心環状線/C1 に入る",
+                        },
+                      },
+                      {
+                        navigationInstruction: {
+                          instructions: "首都高速神奈川1号横羽線/K1 を進む",
+                        },
+                      },
+                    ],
+                  },
+                ],
+                travelAdvisory: {
+                  tollInfo: {
+                    estimatedPrice: [{ currencyCode: "JPY", units: "1950" }],
+                  },
+                },
+              },
+            ],
+          }),
+        });
+
+        const provider = new GoogleRoutesProvider({ apiKey: "test-api-key" });
+        const res = await provider.computeRoute({
+          origin: "千代田区",
+          destination: "横浜市",
+          routeType: "expressway",
+        });
+
+        expect(res.majorHighway).toBe("首都高速神奈川1号横羽線");
+        expect(res.highwayNames).toEqual(["首都高速神奈川1号横羽線", "首都高速都心環状線"]);
+        expect(res.highwayNames).not.toContain("東名高速");
+      });
+    });
+  });
+
+  describe("extractHighwayNames（高速道路名・路線の抽出と正規化）", () => {
+    describe("正常系テスト", () => {
+      it("route.description から主要な高速道路名を正しく抽出できる", () => {
+        const result = extractHighwayNames({
+          description: "首都高速神奈川1号横羽線",
+        });
+        expect(result.majorHighway).toBe("首都高速神奈川1号横羽線");
+        expect(result.highwayNames).toEqual(["首都高速神奈川1号横羽線"]);
+      });
+
+      it("ステップ案内文（instructions）から路線記号を除去し高速道路名を重複なく抽出できる", () => {
+        const result = extractHighwayNames({
+          legs: [
+            {
+              steps: [
+                { navigationInstruction: { instructions: "首都高速都心環状線/C1 に入る" } },
+                { navigationInstruction: { instructions: "首都高速神奈川1号横羽線/K1 を進む" } },
+                { navigationInstruction: { instructions: "首都高速神奈川1号横羽線 を直進する" } },
+              ],
+            },
+          ],
+        });
+        expect(result.majorHighway).toBe("首都高速都心環状線");
+        expect(result.highwayNames).toEqual(["首都高速都心環状線", "首都高速神奈川1号横羽線"]);
+        expect(result.highwayNames).not.toContain("東名高速");
+      });
+
+      it("東名高速道路のルートの場合は東名高速道路を抽出し首都高は含まない", () => {
+        const result = extractHighwayNames({
+          description: "東名高速道路",
+          legs: [
+            {
+              steps: [
+                { navigationInstruction: { instructions: "東名高速道路/第一東海自動車道 に入る" } },
+                { navigationInstruction: { instructions: "東名高速道路 を進む" } },
+              ],
+            },
+          ],
+        });
+        expect(result.majorHighway).toBe("東名高速道路");
+        expect(result.highwayNames).toEqual(["東名高速道路"]);
+        expect(result.highwayNames).not.toContain("首都高速");
+      });
+    });
+
+    describe("境界値テスト", () => {
+      it("一般道など高速道路が含まれないルートの場合は空配列とundefinedを返す", () => {
+        const result = extractHighwayNames({
+          description: "国道246号",
+          legs: [
+            {
+              steps: [
+                { navigationInstruction: { instructions: "国道246号 を進む" } },
+                { navigationInstruction: { instructions: "左折する" } },
+              ],
+            },
+          ],
+        });
+        expect(result.majorHighway).toBeUndefined();
+        expect(result.highwayNames).toEqual([]);
       });
     });
   });

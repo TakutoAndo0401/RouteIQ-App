@@ -51,6 +51,8 @@ export const expresswayRouteFixture: RouteCostSummary = {
   fuelCostYen: 1246,
   totalCostYen: 3046,
   trafficSummary: "東名高速道路の一部区間で通常通りの流れです。",
+  highwayNames: ["東名高速道路"],
+  majorHighway: "東名高速道路",
 };
 
 export const localRouteFixture: RouteCostSummary = {

@@ -27,6 +27,7 @@ export interface RouteCardProps {
   isRecommended?: boolean;
   tollBreakdown?: TollBreakdownItem[];
   totalTollText?: string;
+  viaHighway?: string;
   style?: ViewStyle;
   onPress?: () => void;
 }
@@ -56,6 +57,7 @@ export function RouteCard({
   isRecommended = type === "highway",
   tollBreakdown,
   totalTollText,
+  viaHighway,
   style,
   onPress,
 }: RouteCardProps) {
@@ -101,7 +103,7 @@ export function RouteCard({
   const resolvedBreakdown =
     tollBreakdown ||
     (isHighway && tollYen
-      ? [{ label: "通常料金", amount: `¥${tollYen.toLocaleString()}` }]
+      ? [{ label: viaHighway || "通常料金", amount: `¥${tollYen.toLocaleString()}` }]
       : undefined);
 
   const resolvedTotalToll = totalTollText || (tollYen ? `¥${tollYen.toLocaleString()}` : undefined);
@@ -116,13 +118,23 @@ export function RouteCard({
         style,
       ]}
     >
-      {/* Badge */}
-      <View style={[styles.badge, isHighway ? styles.highwayBadge : styles.generalBadge]}>
-        <Text
-          style={[styles.badgeText, isHighway ? styles.highwayBadgeText : styles.generalBadgeText]}
-        >
-          {resolvedBadge}
-        </Text>
+      {/* Badge & Route Info */}
+      <View style={styles.badgeRow}>
+        <View style={[styles.badge, isHighway ? styles.highwayBadge : styles.generalBadge]}>
+          <Text
+            style={[
+              styles.badgeText,
+              isHighway ? styles.highwayBadgeText : styles.generalBadgeText,
+            ]}
+          >
+            {resolvedBadge}
+          </Text>
+        </View>
+        {viaHighway ? (
+          <Text style={styles.viaHighwayText} numberOfLines={1}>
+            {viaHighway} 経由
+          </Text>
+        ) : null}
       </View>
 
       {/* Metrics */}
@@ -202,6 +214,19 @@ const styles = StyleSheet.create({
   recommendedCard: {
     borderWidth: 2,
     borderColor: colors.primary[500],
+  },
+  badgeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    width: "100%",
+  },
+  viaHighwayText: {
+    fontSize: 11,
+    lineHeight: 14,
+    fontWeight: "600",
+    color: colors.neutral[700],
+    maxWidth: "60%",
   },
   badge: {
     borderRadius: 100,

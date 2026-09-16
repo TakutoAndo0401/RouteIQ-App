@@ -40,6 +40,8 @@ export interface ProviderRouteResult {
   dataSources: string[];
   apiFailures: string[];
   routePolyline?: RouteCoordinate[];
+  highwayNames?: string[];
+  majorHighway?: string;
 }
 
 export interface CompareRoutesResult extends Record<string, unknown> {

@@ -305,18 +305,32 @@ export function GoogleMapView({
             />
 
             {/* 出発地マーカー */}
-            <Marker coordinate={originCoords} anchor={{ x: 0.5, y: 0.5 }}>
-              <View style={styles.nativeRoutePin}>
-                <View style={[styles.routeDot, { backgroundColor: colors.route.origin }]} />
-                <Text style={styles.routePinText}>{originPinLabel}</Text>
+            <Marker coordinate={originCoords} anchor={{ x: 0.5, y: 0.82 }}>
+              <View style={styles.routePinContainer}>
+                <View style={[styles.pinBalloon, { backgroundColor: colors.route.origin }]}>
+                  <Text style={styles.pinBalloonText} numberOfLines={1}>
+                    {originPinLabel}
+                  </Text>
+                </View>
+                <View style={[styles.pinArrow, { borderTopColor: colors.route.origin }]} />
+                <View style={styles.pinCore}>
+                  <View style={[styles.pinDot, { backgroundColor: colors.route.origin }]} />
+                </View>
               </View>
             </Marker>
 
             {/* 目的地マーカー */}
-            <Marker coordinate={destCoords} anchor={{ x: 0.5, y: 0.5 }}>
-              <View style={styles.nativeRoutePin}>
-                <View style={[styles.routeDot, { backgroundColor: colors.route.destination }]} />
-                <Text style={styles.routePinText}>{destinationPinLabel}</Text>
+            <Marker coordinate={destCoords} anchor={{ x: 0.5, y: 0.82 }}>
+              <View style={styles.routePinContainer}>
+                <View style={[styles.pinBalloon, { backgroundColor: colors.route.destination }]}>
+                  <Text style={styles.pinBalloonText} numberOfLines={1}>
+                    {destinationPinLabel}
+                  </Text>
+                </View>
+                <View style={[styles.pinArrow, { borderTopColor: colors.route.destination }]} />
+                <View style={styles.pinCore}>
+                  <View style={[styles.pinDot, { backgroundColor: colors.route.destination }]} />
+                </View>
               </View>
             </Marker>
           </>
@@ -541,34 +555,11 @@ const styles = StyleSheet.create({
     borderStyle: "dashed",
     zIndex: 1,
   },
-  nativeRoutePin: {
-    flexDirection: "row",
+  routePinContainer: {
+    width: 96,
+    height: 44,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#ffffff",
-    paddingVertical: 5,
-    paddingHorizontal: 12,
-    borderRadius: 16,
-    borderWidth: 1.5,
-    borderColor: "#dce3dd",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.18,
-    shadowRadius: 6,
-    elevation: 4,
-    gap: 6,
-    minWidth: 70,
-  },
-  routeDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-  },
-  routePinText: {
-    fontSize: 12,
-    lineHeight: 16,
-    fontWeight: "700",
-    color: "#1c2420",
   },
   mapControlsGroup: {
     position: "absolute",

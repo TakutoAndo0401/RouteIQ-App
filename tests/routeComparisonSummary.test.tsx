@@ -386,4 +386,74 @@ describe("ルート比較サマリー画面 (RouteComparisonSummary)", () => {
       });
     });
   });
+
+  describe("高速道路ルートの路線名・料金内訳表示（動的反映機能）", () => {
+    describe("正常系テスト", () => {
+      it("首都高速ルートの場合、固定の『東名高速』が表示されず実際の路線名が表示される", () => {
+        const tokyoYokohamaResult: CompareRoutesResult = {
+          ...sampleResult,
+          expresswayRoute: {
+            ...sampleResult.expresswayRoute,
+            tollYen: 1950,
+            majorHighway: "首都高速神奈川1号横羽線",
+            highwayNames: ["首都高速神奈川1号横羽線", "首都高速都心環状線"],
+          },
+        };
+
+        act(() => {
+          root!.render(
+            <RouteComparisonSummary
+              result={tokyoYokohamaResult}
+              origin="東京都千代田区1丁目9"
+              destination="神奈川県横浜市神奈川区"
+            />,
+          );
+        });
+
+        // 経由表示として主要路線が表示される
+        expect(container!.textContent).toContain("首都高速神奈川1号横羽線 経由");
+
+        // 固定のモック「東名高速」が一切含まれないことを確認
+        expect(container!.textContent).not.toContain("東名高速");
+
+        // アコーディオンを開くボタンを押下して料金内訳を確認
+        const breakdownButton = container!.querySelector('[aria-label="料金内訳を表示"]');
+        expect(breakdownButton).not.toBeNull();
+
+        act(() => {
+          breakdownButton!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+        });
+
+        // 内訳に首都高速神奈川1号横羽線と金額が含まれる
+        expect(container!.textContent).toContain("首都高速神奈川1号横羽線");
+        expect(container!.textContent).toContain("¥1,950");
+        expect(container!.textContent).not.toContain("東名高速");
+      });
+
+      it("東名高速ルートの場合、東名高速道路が表示され首都高速が表示されない", () => {
+        const tomeiResult: CompareRoutesResult = {
+          ...sampleResult,
+          expresswayRoute: {
+            ...sampleResult.expresswayRoute,
+            tollYen: 3250,
+            majorHighway: "東名高速道路",
+            highwayNames: ["東名高速道路"],
+          },
+        };
+
+        act(() => {
+          root!.render(
+            <RouteComparisonSummary
+              result={tomeiResult}
+              origin="東京都世田谷区用賀"
+              destination="静岡県御殿場市"
+            />,
+          );
+        });
+
+        expect(container!.textContent).toContain("東名高速道路 経由");
+        expect(container!.textContent).not.toContain("首都高速");
+      });
+    });
+  });
 });

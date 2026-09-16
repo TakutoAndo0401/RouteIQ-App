@@ -32,6 +32,10 @@ export function toRouteCostSummary(
     ...(route.routePolyline && route.routePolyline.length > 0
       ? { routePolyline: route.routePolyline }
       : {}),
+    ...(route.highwayNames && route.highwayNames.length > 0
+      ? { highwayNames: route.highwayNames }
+      : {}),
+    ...(route.majorHighway ? { majorHighway: route.majorHighway } : {}),
   };
 }
 
