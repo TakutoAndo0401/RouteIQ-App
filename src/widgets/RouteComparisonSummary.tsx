@@ -24,7 +24,6 @@ import { buildGoogleMapsDirectionsUrl, type Coordinates } from "../domain/locati
 export interface RouteComparisonSummaryProps {
   theme?: ColorTheme;
   result: CompareRoutesResult;
-  answerText?: string;
   origin?: string;
   destination?: string;
   originCoordinates?: Coordinates;
@@ -48,7 +47,6 @@ const formatETA = (minutes: number, baseDate: Date) => {
 
 export const RouteComparisonSummary = React.memo(function RouteComparisonSummary({
   result,
-  answerText,
   origin = "用賀IC",
   destination = "御殿場IC",
   originCoordinates,
@@ -355,12 +353,6 @@ export const RouteComparisonSummary = React.memo(function RouteComparisonSummary
             style={selectedRouteType === "local" ? styles.selectedCardHighlight : undefined}
           />
         </View>
-
-        {/* サマリー解説文 (Figma 33:3379) */}
-        <Text style={styles.summaryNote}>
-          {answerText ||
-            "一般道に比べ、所要時間が50分短縮されます。ストップ＆ゴーが減るため燃費効率が向上し、結果的に燃料費もお得になります。"}
-        </Text>
 
         {/* ルートマップセクション (Figma 202:613) */}
         <View style={styles.routeMapSection}>
@@ -797,11 +789,6 @@ const styles = StyleSheet.create({
   cardsContainer: {
     gap: 12,
     width: "100%",
-  },
-  summaryNote: {
-    fontSize: 12,
-    lineHeight: 18,
-    color: colors.neutral[700],
   },
   routeMapSection: {
     gap: 10,

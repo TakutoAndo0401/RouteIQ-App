@@ -233,6 +233,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 4,
     alignSelf: "flex-start",
+    alignItems: "center",
+    justifyContent: "center",
   },
   highwayBadge: {
     backgroundColor: colors.neutral[100], // #e8efe9
@@ -242,8 +244,11 @@ const styles = StyleSheet.create({
   },
   badgeText: {
     fontSize: 10,
-    lineHeight: 12,
+    lineHeight: 14,
     fontWeight: "bold",
+    textAlign: "center",
+    textAlignVertical: "center",
+    includeFontPadding: false,
   },
   highwayBadgeText: {
     color: colors.primary[500],

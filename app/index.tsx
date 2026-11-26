@@ -441,7 +441,6 @@ export default function RouteComparisonScreen() {
             <RouteComparisonSummary
               theme={lightTheme}
               result={analysisResult.routeComparison}
-              answerText={analysisResult.answer}
               origin={origin}
               destination={destination}
               originCoordinates={originCoords ?? undefined}

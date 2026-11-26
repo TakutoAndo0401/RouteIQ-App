@@ -79,6 +79,9 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 16,
     fontWeight: "600",
+    textAlign: "center",
+    textAlignVertical: "center",
+    includeFontPadding: false,
   },
   textSelected: {
     color: colors.base.white,

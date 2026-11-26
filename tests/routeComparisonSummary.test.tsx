@@ -178,6 +178,7 @@ describe("ルート比較サマリー画面 (RouteComparisonSummary)", () => {
         expect(textContent).toContain("全画面");
         expect(textContent).not.toContain("拡大");
         expect(textContent).not.toContain("縮小");
+        expect(textContent).not.toContain("一般道に比べ、所要時間が50分短縮されます");
       });
 
       it("埋め込みGoogleMapViewに対して重複する拡大・外部連携ボタンの表示フラグを渡さない", () => {

@@ -289,7 +289,7 @@ function GoogleMapViewInner({
     .leaflet-bar { border: none !important; box-shadow: 0 2px 6px rgba(0,0,0,0.12) !important; border-radius: 8px !important; overflow: hidden; }
     .leaflet-bar a { background: #fff !important; color: #1c2420 !important; width: 32px !important; height: 32px !important; line-height: 32px !important; font-size: 15px !important; font-weight: bold !important; }
     .custom-pin-container { display: flex; flex-direction: column; align-items: center; width: 96px; pointer-events: none; }
-    .pin-balloon { color: #ffffff; min-width: 64px; padding: 5px 12px; border-radius: 14px; font-size: 12px; font-weight: bold; letter-spacing: 0.3px; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25); white-space: nowrap; text-align: center; }
+    .pin-balloon { display: inline-flex; align-items: center; justify-content: center; color: #ffffff; min-width: 68px; min-height: 28px; padding: 5px 12px; border-radius: 14px; font-size: 12px; line-height: 16px; font-weight: bold; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25); white-space: nowrap; text-align: center; }
     .pin-arrow { width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent; border-top: 6px solid; margin-top: -1px; margin-bottom: 1px; }
     .pin-core { position: relative; width: 14px; height: 14px; display: flex; align-items: center; justify-content: center; pointer-events: none; }
     .pin-dot { width: 10px; height: 10px; border: 2px solid #ffffff; border-radius: 50%; box-shadow: 0 1px 3px rgba(0,0,0,0.35); position: relative; z-index: 2; }
@@ -455,17 +455,21 @@ function GoogleMapViewInner({
       cursor: grabbing;
     }
     .pin-balloon {
-      min-width: 64px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 68px;
+      min-height: 28px;
       background: ${balloonColor};
       color: #ffffff;
       font-size: 12px;
+      line-height: 16px;
       font-weight: bold;
       padding: 5px 12px;
       border-radius: 14px;
       white-space: nowrap;
       text-align: center;
       box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
-      letter-spacing: 0.3px;
       pointer-events: none;
     }
     .pin-arrow {
@@ -501,11 +505,16 @@ function GoogleMapViewInner({
       position: absolute;
       top: 10px;
       left: 10px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 26px;
       background: #ffffff;
       border: 1px solid #dce3dd;
       padding: 4px 10px;
       border-radius: 16px;
       font-size: 11px;
+      line-height: 16px;
       font-weight: 600;
       color: #38423d;
       box-shadow: 0 2px 6px rgba(0,0,0,0.06);
@@ -788,9 +797,13 @@ const styles = StyleSheet.create({
   },
   nativeBalloon: {
     backgroundColor: colors.warning[500],
-    paddingHorizontal: 10,
+    minWidth: 68,
+    minHeight: 28,
+    paddingHorizontal: 12,
     paddingVertical: 5,
-    borderRadius: 12,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
     marginBottom: 4,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 3 },
@@ -805,8 +818,12 @@ const styles = StyleSheet.create({
   },
   nativeBalloonText: {
     color: colors.base.white,
-    fontSize: 11,
+    fontSize: 12,
+    lineHeight: 18,
     fontWeight: "bold",
+    textAlign: "center",
+    textAlignVertical: "center",
+    includeFontPadding: false,
   },
   nativePinDot: {
     width: 14,

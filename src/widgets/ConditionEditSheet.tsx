@@ -495,8 +495,12 @@ const styles = StyleSheet.create({
   },
   fuelChipLabel: {
     fontSize: 12,
+    lineHeight: 16,
     fontWeight: "600",
     color: colors.neutral[800],
+    textAlign: "center",
+    textAlignVertical: "center",
+    includeFontPadding: false,
   },
   fuelChipTextActive: {
     color: colors.primary[700],
