@@ -3,7 +3,6 @@ import {
   GoogleRoutesProvider,
   decodePolyline,
   extractHighwayNames,
-  isHighwayName,
   parseDurationMinutes,
   parseToll,
   resolveGoogleDepartureTime,
