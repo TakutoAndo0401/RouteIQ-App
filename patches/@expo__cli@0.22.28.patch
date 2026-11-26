@@ -105,3 +105,29 @@ index 2e729f3a7241d663ea4d91b1834712bd82863d8d..6ab66246c30f50e5fc6d745f4160948b
      ];
      if (device.udid) {
          // This has no effect if the app is already running.
+diff --git a/build/src/utils/npm.js b/build/src/utils/npm.js
+--- a/build/src/utils/npm.js
++++ b/build/src/utils/npm.js
+@@ -60,7 +60,8 @@ function _stream() {
+     return data;
+ }
+ function _tar() {
+-    const data = /*#__PURE__*/ _interopRequireDefault(require("tar"));
++    const mod = require("tar");
++    const data = { default: mod.default ?? mod };
+     _tar = function() {
+         return data;
+     };
+diff --git a/build/src/utils/tar.js b/build/src/utils/tar.js
+--- a/build/src/utils/tar.js
++++ b/build/src/utils/tar.js
+@@ -14,7 +14,8 @@ function _spawnAsync() {
+     return data;
+ }
+ function _tar() {
+-    const data = /*#__PURE__*/ _interopRequireDefault(require("tar"));
++    const mod = require("tar");
++    const data = { default: mod.default ?? mod };
+     _tar = function() {
+         return data;
+     };

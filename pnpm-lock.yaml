@@ -28,7 +28,7 @@ overrides:
   vite@^7.0.0: ^7.3.7
 
 patchedDependencies:
-  '@expo/cli@0.22.28': b05d8974eab8f9e2c981f77b62d016c544410a41f101a6b31f31072be105caff
+  '@expo/cli@0.22.28': 900008fecdc9d40978076c17eb8f831e9b62f69c9982105e4947877265ff6274
   image-size@2.0.4: 3d173203efc64a689ea117d06056a9b32fac9b52c4d8b35d420d39fe8382e944
   react-native-maps@1.18.0: 15edd2f8b59ca91cc7ab8514855521d0d77b0451be921c27d605e0736aa72f74
 
@@ -6733,7 +6733,7 @@ snapshots:
     dependencies:
       uuid: 11.1.1
 
-  '@expo/cli@0.22.28(patch_hash=b05d8974eab8f9e2c981f77b62d016c544410a41f101a6b31f31072be105caff)(supports-color@8.1.1)':
+  '@expo/cli@0.22.28(patch_hash=900008fecdc9d40978076c17eb8f831e9b62f69c9982105e4947877265ff6274)(supports-color@8.1.1)':
     dependencies:
       '@0no-co/graphql.web': 1.3.4
       '@babel/runtime': 7.29.7
@@ -9136,7 +9136,7 @@ snapshots:
   expo@52.0.49(@babel/core@7.29.7(supports-color@8.1.1))(@babel/preset-env@7.29.7(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@expo/dom-webview@57.0.1)(@expo/metro-runtime@4.0.1(react-native@0.76.9(@babel/core@7.29.7(supports-color@8.1.1))(@babel/preset-env@7.29.7(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1)))(react-native@0.76.9(@babel/core@7.29.7(supports-color@8.1.1))(@babel/preset-env@7.29.7(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(react@18.3.1)(supports-color@8.1.1):
     dependencies:
       '@babel/runtime': 7.29.7
-      '@expo/cli': 0.22.28(patch_hash=b05d8974eab8f9e2c981f77b62d016c544410a41f101a6b31f31072be105caff)(supports-color@8.1.1)
+      '@expo/cli': 0.22.28(patch_hash=900008fecdc9d40978076c17eb8f831e9b62f69c9982105e4947877265ff6274)(supports-color@8.1.1)
       '@expo/config': 10.0.11(supports-color@8.1.1)
       '@expo/config-plugins': 9.0.17(supports-color@8.1.1)
       '@expo/fingerprint': 0.11.11(supports-color@8.1.1)
