@@ -176,18 +176,18 @@ export function GoogleMapView({
     ];
   }, [routeCoordinates, originCoords, destCoords]);
 
-  // 代替ルート座標列
-  const secondaryRoutePoints = useMemo<number[][] | null>(() => {
-    if (!secondaryRouteCoordinates || secondaryRouteCoordinates.length === 0) {
-      return null;
+  // 代替ルート描画用座標列（Web）
+  const secondaryRoutePoints = useMemo(() => {
+    if (secondaryRouteCoordinates && secondaryRouteCoordinates.length > 0) {
+      return secondaryRouteCoordinates.map((c) => {
+        const lat = "lat" in c ? c.lat : c.latitude;
+        const lng = "lng" in c ? c.lng : c.longitude;
+        return [lat, lng];
+      });
     }
-    return secondaryRouteCoordinates.map((c) => [
-      "lat" in c ? c.lat : c.latitude,
-      "lng" in c ? c.lng : c.longitude,
-    ]);
+    return [];
   }, [secondaryRouteCoordinates]);
 
-  // 視認性の高いルートカラー解決（デフォルトは鮮やかなナビゲーションブルーと白ケーシング）
   const resolvedRouteColor = routeColor ?? colors.route.active;
   const resolvedRouteCasingColor = routeCasingColor ?? colors.route.activeCasing;
 
@@ -216,10 +216,10 @@ export function GoogleMapView({
     .leaflet-bar { border: none !important; box-shadow: 0 2px 6px rgba(0,0,0,0.12) !important; border-radius: 8px !important; overflow: hidden; }
     .leaflet-bar a { background: #fff !important; color: #1c2420 !important; width: 32px !important; height: 32px !important; line-height: 32px !important; font-size: 15px !important; font-weight: bold !important; }
     .custom-pin-container { display: flex; flex-direction: column; align-items: center; width: 96px; pointer-events: none; }
-    .pin-balloon { color: #ffffff; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 700; letter-spacing: 0.2px; box-shadow: 0 4px 8px rgba(28, 36, 32, 0.25); white-space: nowrap; }
-    .pin-arrow { width: 0; height: 0; border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 5px solid; margin-bottom: 1px; }
+    .pin-balloon { color: #ffffff; min-width: 64px; padding: 5px 12px; border-radius: 14px; font-size: 12px; font-weight: bold; letter-spacing: 0.3px; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25); white-space: nowrap; text-align: center; }
+    .pin-arrow { width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent; border-top: 6px solid; margin-top: -1px; margin-bottom: 1px; }
     .pin-core { position: relative; width: 14px; height: 14px; display: flex; align-items: center; justify-content: center; pointer-events: none; }
-    .pin-dot { width: 12px; height: 12px; border: 2px solid #ffffff; border-radius: 50%; box-shadow: 0 2px 4px rgba(0,0,0,0.35); position: relative; z-index: 2; }
+    .pin-dot { width: 10px; height: 10px; border: 2px solid #ffffff; border-radius: 50%; box-shadow: 0 1px 3px rgba(0,0,0,0.35); position: relative; z-index: 2; }
   </style>
 </head>
 <body>
@@ -332,10 +332,9 @@ export function GoogleMapView({
     .leaflet-bar a:hover { background: #f4f6f4 !important; }
     .leaflet-tile { filter: saturate(0.82) contrast(1.02); }
 
-    /* Custom Pin & Balloon: Exact 0px offset alignment */
+    /* Custom Pin & Balloon */
     .custom-pin-container {
-      width: 120px;
-      height: 42px;
+      width: 100px;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -349,25 +348,26 @@ export function GoogleMapView({
       cursor: grabbing;
     }
     .pin-balloon {
-      height: 22px;
-      line-height: 14px;
+      min-width: 64px;
       background: ${balloonColor};
       color: #ffffff;
-      font-size: 11px;
-      font-weight: 700;
-      padding: 4px 10px;
-      border-radius: 12px;
+      font-size: 12px;
+      font-weight: bold;
+      padding: 5px 12px;
+      border-radius: 14px;
       white-space: nowrap;
-      box-shadow: 0 4px 8px rgba(28, 36, 32, 0.25);
-      letter-spacing: 0.2px;
+      text-align: center;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+      letter-spacing: 0.3px;
       pointer-events: none;
     }
     .pin-arrow {
       width: 0;
       height: 0;
-      border-left: 5px solid transparent;
-      border-right: 5px solid transparent;
-      border-top: 5px solid ${balloonColor};
+      border-left: 6px solid transparent;
+      border-right: 6px solid transparent;
+      border-top: 6px solid ${balloonColor};
+      margin-top: -1px;
       margin-bottom: 1px;
       pointer-events: none;
     }
@@ -381,32 +381,14 @@ export function GoogleMapView({
       pointer-events: none;
     }
     .pin-dot {
-      width: 12px;
-      height: 12px;
+      width: 10px;
+      height: 10px;
       background: ${balloonColor};
       border: 2px solid #ffffff;
       border-radius: 50%;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.35);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.35);
       position: relative;
       z-index: 2;
-    }
-    .pin-radius-ring {
-      position: absolute;
-      width: 44px;
-      height: 44px;
-      border-radius: 50%;
-      background: ${balloonColor}1a;
-      border: 1.5px dashed ${balloonColor}80;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      pointer-events: none;
-      animation: pulseRing 2.4s infinite ease-in-out;
-    }
-    @keyframes pulseRing {
-      0% { transform: translate(-50%, -50%) scale(0.92); opacity: 0.7; }
-      50% { transform: translate(-50%, -50%) scale(1.08); opacity: 1; }
-      100% { transform: translate(-50%, -50%) scale(0.92); opacity: 0.7; }
     }
     .tap-hint {
       position: absolute;
@@ -452,7 +434,6 @@ export function GoogleMapView({
 
     L.control.zoom({ position: 'bottomright' }).addTo(map);
 
-    // iconAnchor: [60, 35] により、pin-dot の中心 (x=60, y=22+6+7=35) が座標と完全に一致
     const customIcon = L.divIcon({
       className: '',
       html: \`
@@ -461,12 +442,11 @@ export function GoogleMapView({
           <div class="pin-arrow"></div>
           <div class="pin-core">
             <div class="pin-dot"></div>
-            <div class="pin-radius-ring"></div>
           </div>
         </div>
       \`,
-      iconSize: [120, 42],
-      iconAnchor: [60, 35],
+      iconSize: [100, 48],
+      iconAnchor: [50, 40],
     });
 
     const marker = L.marker([lat, lng], {

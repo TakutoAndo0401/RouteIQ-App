@@ -244,7 +244,7 @@ const styles = StyleSheet.create({
   mapWrapper: {
     flex: 1,
     width: "100%",
-    backgroundColor: "#eef2ef",
+    backgroundColor: colors.base.white,
   },
   googleMap: {
     flex: 1,

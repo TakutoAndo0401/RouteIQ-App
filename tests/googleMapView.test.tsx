@@ -72,7 +72,7 @@ describe("GoogleMapView（ルート比較ピンの文言・スタイリング検
       expect(srcDoc).toContain("pin-balloon");
       expect(srcDoc).toContain("width: 96px");
       expect(srcDoc).toContain("white-space: nowrap");
-      expect(srcDoc).toContain("font-size: 11px");
+      expect(srcDoc).toContain("font-size: 12px");
     });
 
     it("カスタムの originPinLabel / destinationPinLabel が指定された場合は指定した文言がピンに反映される", () => {
@@ -94,6 +94,28 @@ describe("GoogleMapView（ルート比較ピンの文言・スタイリング検
 
       expect(srcDoc).toContain("<span>東京IC</span>");
       expect(srcDoc).toContain("<span>名古屋IC</span>");
+    });
+
+    it("地点選択用マップ表示時、ピンに指定ラベルが反映され、不要な破線枠（pin-radius-ring）が含まれない", () => {
+      act(() => {
+        root!.render(
+          <GoogleMapView
+            isRouteMap={false}
+            pinLabel="目的地"
+            initialCoordinates={{ latitude: 35.6812, longitude: 139.7671 }}
+          />,
+        );
+      });
+
+      const iframe = container!.querySelector("iframe");
+      expect(iframe).not.toBeNull();
+      const srcDoc = iframe?.getAttribute("srcdoc") || "";
+
+      // ピンの文字に「目的地」が含まれ、不要なリングが含まれていない
+      expect(srcDoc).toContain("目的地");
+      expect(srcDoc).not.toContain("pin-radius-ring");
+      expect(srcDoc).toContain("custom-pin-container");
+      expect(srcDoc).toContain("font-size: 12px");
     });
   });
 });

@@ -252,7 +252,7 @@ export default function RouteComparisonScreen() {
       <View style={styles.appContainer}>
         {/* 1. TOP（検索画面） (Figma 33:3268) */}
         {screenMode === "input" && (
-          <View style={styles.screenWrapper}>
+          <View style={[styles.screenWrapper, isMapModalOpen && styles.hiddenBehindModal]}>
             <SearchTopView
               origin={origin}
               destination={destination}
@@ -288,7 +288,7 @@ export default function RouteComparisonScreen() {
 
         {/* 4. 検索結果画面 (Figma 33:3338) */}
         {screenMode === "results" && analysisResult?.routeComparison && (
-          <View style={styles.resultsContainer}>
+          <View style={[styles.resultsContainer, isMapModalOpen && styles.hiddenBehindModal]}>
             <BackHeader
               title="比較結果"
               backLabel="戻る"
@@ -390,6 +390,9 @@ const styles = StyleSheet.create({
   },
   screenWrapper: {
     flex: 1,
+  },
+  hiddenBehindModal: {
+    display: "none",
   },
   resultsContainer: {
     flex: 1,

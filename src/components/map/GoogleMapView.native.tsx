@@ -257,7 +257,8 @@ export function GoogleMapView({
       <MapView
         ref={mapRef}
         provider={PROVIDER_DEFAULT}
-        style={[StyleSheet.absoluteFillObject, { backgroundColor: "#eef2ef" }]}
+        style={[StyleSheet.absoluteFillObject, { backgroundColor: "#ffffff" }]}
+        loadingBackgroundColor="#ffffff"
         initialRegion={initialRegion}
         onPress={handleMapPress}
         showsUserLocation={true}
@@ -305,7 +306,12 @@ export function GoogleMapView({
             />
 
             {/* 出発地マーカー */}
-            <Marker coordinate={originCoords} anchor={{ x: 0.5, y: 0.82 }}>
+            <Marker
+              key={`origin-${originPinLabel}`}
+              coordinate={originCoords}
+              anchor={{ x: 0.5, y: 0.95 }}
+              tracksViewChanges={false}
+            >
               <View style={styles.routePinContainer}>
                 <View style={[styles.pinBalloon, { backgroundColor: colors.route.origin }]}>
                   <Text style={styles.pinBalloonText} numberOfLines={1}>
@@ -320,7 +326,12 @@ export function GoogleMapView({
             </Marker>
 
             {/* 目的地マーカー */}
-            <Marker coordinate={destCoords} anchor={{ x: 0.5, y: 0.82 }}>
+            <Marker
+              key={`dest-${destinationPinLabel}`}
+              coordinate={destCoords}
+              anchor={{ x: 0.5, y: 0.95 }}
+              tracksViewChanges={false}
+            >
               <View style={styles.routePinContainer}>
                 <View style={[styles.pinBalloon, { backgroundColor: colors.route.destination }]}>
                   <Text style={styles.pinBalloonText} numberOfLines={1}>
@@ -337,24 +348,22 @@ export function GoogleMapView({
         ) : (
           /* 地点選択用マーカー */
           <Marker
+            key={`select-${pinLabel}-${balloonColor}`}
             coordinate={currentCoords}
             draggable
             onDragEnd={handleMarkerDragEnd}
-            anchor={{ x: 0.5, y: 0.8 }}
+            anchor={{ x: 0.5, y: 0.95 }}
+            tracksViewChanges={false}
           >
             <View style={styles.customPinContainer}>
               <View style={[styles.pinBalloon, { backgroundColor: balloonColor }]}>
-                <Text style={styles.pinBalloonText}>{pinLabel}</Text>
+                <Text style={styles.pinBalloonText} numberOfLines={1}>
+                  {pinLabel}
+                </Text>
               </View>
               <View style={[styles.pinArrow, { borderTopColor: balloonColor }]} />
               <View style={styles.pinCore}>
                 <View style={[styles.pinDot, { backgroundColor: balloonColor }]} />
-                <View
-                  style={[
-                    styles.pinRadiusRing,
-                    { backgroundColor: `${balloonColor}1a`, borderColor: `${balloonColor}80` },
-                  ]}
-                />
               </View>
             </View>
           </Marker>
@@ -473,7 +482,7 @@ const styles = StyleSheet.create({
     borderColor: colors.neutral[200],
     overflow: "hidden",
     position: "relative",
-    backgroundColor: "#eef2ef",
+    backgroundColor: "#ffffff",
   },
   hintBadge: {
     position: "absolute",
@@ -498,33 +507,49 @@ const styles = StyleSheet.create({
     color: "#38423d",
   },
   customPinContainer: {
+    minWidth: 80,
+    paddingHorizontal: 4,
+    paddingVertical: 4,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  routePinContainer: {
+    minWidth: 80,
+    paddingHorizontal: 4,
+    paddingVertical: 4,
     alignItems: "center",
     justifyContent: "center",
   },
   pinBalloon: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-    shadowColor: "#1c2420",
-    shadowOffset: { width: 0, height: 4 },
+    minWidth: 64,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
-    shadowRadius: 6,
+    shadowRadius: 4,
     elevation: 4,
   },
   pinBalloonText: {
     color: "#ffffff",
-    fontSize: 11,
-    fontWeight: "700",
-    letterSpacing: 0.2,
+    fontSize: 12,
+    fontWeight: "bold",
+    textAlign: "center",
+    includeFontPadding: false,
+    letterSpacing: 0.3,
   },
   pinArrow: {
     width: 0,
     height: 0,
-    borderLeftWidth: 5,
-    borderRightWidth: 5,
-    borderTopWidth: 5,
+    borderLeftWidth: 6,
+    borderRightWidth: 6,
+    borderTopWidth: 6,
     borderLeftColor: "transparent",
     borderRightColor: "transparent",
+    marginTop: -1,
     marginBottom: 1,
   },
   pinCore: {
@@ -534,32 +559,16 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   pinDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
     borderWidth: 2,
     borderColor: "#ffffff",
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.35,
-    shadowRadius: 3,
+    shadowRadius: 2,
     elevation: 3,
-    zIndex: 2,
-  },
-  pinRadiusRing: {
-    position: "absolute",
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    borderWidth: 1.5,
-    borderStyle: "dashed",
-    zIndex: 1,
-  },
-  routePinContainer: {
-    width: 96,
-    height: 44,
-    alignItems: "center",
-    justifyContent: "center",
   },
   mapControlsGroup: {
     position: "absolute",

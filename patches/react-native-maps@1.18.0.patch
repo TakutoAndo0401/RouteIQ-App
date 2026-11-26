@@ -1,0 +1,46 @@
+diff --git a/android/src/main/java/com/rnmaps/maps/MapMarker.java b/android/src/main/java/com/rnmaps/maps/MapMarker.java
+index b755f9ba5a35a5bf8ab77eb66ced7b6580fe2822..4aba53d93cf0cdb5270faf9b373c4e913ab6f02d 100644
+--- a/android/src/main/java/com/rnmaps/maps/MapMarker.java
++++ b/android/src/main/java/com/rnmaps/maps/MapMarker.java
+@@ -508,6 +508,23 @@ public class MapMarker extends MapFeature {
+     }
+   }
+ 
++  @Override
++  protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
++    super.onLayout(changed, left, top, right, bottom);
++    int newWidth = right - left;
++    int newHeight = bottom - top;
++    if (getChildCount() > 0) {
++      View child = getChildAt(0);
++      newWidth = Math.max(newWidth, child.getWidth());
++      newHeight = Math.max(newHeight, child.getHeight());
++    }
++    if (newWidth > 0 && newHeight > 0 && (this.width != newWidth || this.height != newHeight)) {
++      this.width = newWidth;
++      this.height = newHeight;
++      update(true);
++    }
++  }
++
+   public void update(int width, int height) {
+     this.width = width;
+     this.height = height;
+@@ -522,8 +539,15 @@ public class MapMarker extends MapFeature {
+   }
+ 
+   private Bitmap createDrawable() {
+-    int width = this.width <= 0 ? 100 : this.width;
+-    int height = this.height <= 0 ? 100 : this.height;
++    int measuredWidth = getWidth();
++    int measuredHeight = getHeight();
++    if (getChildCount() > 0) {
++      View child = getChildAt(0);
++      measuredWidth = Math.max(measuredWidth, child.getWidth());
++      measuredHeight = Math.max(measuredHeight, child.getHeight());
++    }
++    int width = this.width > 0 ? this.width : (measuredWidth > 0 ? measuredWidth : 100);
++    int height = this.height > 0 ? this.height : (measuredHeight > 0 ? measuredHeight : 100);
+     this.buildDrawingCache();
+ 
+     // Do not create the doublebuffer-bitmap each time. reuse it to save memory.

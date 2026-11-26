@@ -137,7 +137,11 @@ export function RouteComparisonSummary({
 
   return (
     <View style={styles.outerContainer}>
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={isFullscreenModalOpen ? styles.hiddenBehindModal : undefined}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
         {/* おすすめハイライト (Alert Banner) */}
         <AlertBanner
           type="Recommendation"
@@ -322,7 +326,9 @@ export function RouteComparisonSummary({
       </ScrollView>
 
       {/* 固定フッター (条件を変更して再検索) */}
-      <ActionFooter label="条件を変更して再検索" onPress={onBackToSearch} state="Default" />
+      {!isFullscreenModalOpen && (
+        <ActionFooter label="条件を変更して再検索" onPress={onBackToSearch} state="Default" />
+      )}
 
       {/* 全画面地図モーダル */}
       <Modal
@@ -472,6 +478,9 @@ const styles = StyleSheet.create({
   outerContainer: {
     flex: 1,
     backgroundColor: colors.neutral[50], // #f4f6f4
+  },
+  hiddenBehindModal: {
+    display: "none",
   },
   scrollContent: {
     paddingHorizontal: 20,
