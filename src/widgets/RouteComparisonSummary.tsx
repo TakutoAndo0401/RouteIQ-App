@@ -13,7 +13,7 @@ import {
 } from "react-native";
 import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
-import { Map, Expand, ExternalLink, X } from "lucide-react-native";
+import { Map, Expand, ExternalLink, X, Sparkles, Info } from "lucide-react-native";
 import type { CompareRoutesResult } from "../contracts";
 import type { ColorTheme } from "../shared/theme";
 import { RouteCard, AlertBanner, ActionFooter } from "../components/ui";
@@ -178,6 +178,25 @@ export const RouteComparisonSummary = React.memo(function RouteComparisonSummary
     result.recommendationReason ||
     "所要時間を1時間10分短縮できます。時間価値を考慮すると高速道路がお得です。";
 
+  const decision = result.decision;
+  const prioritizeLabel =
+    result.input.prioritize === "time"
+      ? "時間優先"
+      : result.input.prioritize === "cost"
+        ? "費用優先"
+        : "バランス重視";
+  const confidencePercent =
+    typeof decision?.confidence === "number" ? Math.round(decision.confidence * 100) : null;
+  const isCloseDecision = typeof decision?.confidence === "number" && decision.confidence < 0.6;
+  const expresswayProbPercent =
+    typeof decision?.probabilities?.expressway === "number"
+      ? Math.round(decision.probabilities.expressway * 100)
+      : null;
+  const localProbPercent =
+    typeof decision?.probabilities?.local === "number"
+      ? Math.round(decision.probabilities.local * 100)
+      : null;
+
   return (
     <View style={styles.outerContainer}>
       <ScrollView
@@ -192,6 +211,110 @@ export const RouteComparisonSummary = React.memo(function RouteComparisonSummary
           description={alertDescription}
           style={styles.alertBanner}
         />
+
+        {/* Decisions API 判定インサイト（確信度・支持確率バー / フォールバック注記） */}
+        {decision?.source === "gemini-decisions-api" && (
+          <View style={styles.decisionCard} accessibilityRole="summary">
+            <View style={styles.decisionHeaderRow}>
+              <View style={styles.decisionModelBadge}>
+                <Sparkles size={13} color={colors.primary[600]} />
+                <Text style={styles.decisionModelText}>
+                  AI判定 • {decision.model ?? "gemini-decision-1"}
+                </Text>
+              </View>
+              <View style={styles.decisionRightMeta}>
+                <View style={styles.priorityTag}>
+                  <Text style={styles.priorityTagText}>{prioritizeLabel}</Text>
+                </View>
+                {confidencePercent !== null && (
+                  <View
+                    style={[
+                      styles.confidenceBadge,
+                      isCloseDecision
+                        ? styles.confidenceBadgeClose
+                        : confidencePercent >= 80
+                          ? styles.confidenceBadgeHigh
+                          : styles.confidenceBadgeMedium,
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.confidenceBadgeText,
+                        isCloseDecision
+                          ? styles.confidenceBadgeTextClose
+                          : confidencePercent >= 80
+                            ? styles.confidenceBadgeTextHigh
+                            : styles.confidenceBadgeTextMedium,
+                      ]}
+                    >
+                      {isCloseDecision
+                        ? `僅差 ${confidencePercent}%`
+                        : `確信度 ${confidencePercent}%`}
+                    </Text>
+                  </View>
+                )}
+              </View>
+            </View>
+
+            {expresswayProbPercent !== null && localProbPercent !== null && (
+              <View style={styles.probabilitySection}>
+                <View style={styles.probabilityLabelRow}>
+                  <Text
+                    style={[
+                      styles.probabilityLabel,
+                      isExpresswayRecommended && styles.probabilityLabelWinner,
+                    ]}
+                  >
+                    高速道路 {expresswayProbPercent}%
+                  </Text>
+                  <Text
+                    style={[
+                      styles.probabilityLabel,
+                      !isExpresswayRecommended && styles.probabilityLabelWinner,
+                    ]}
+                  >
+                    一般道 {localProbPercent}%
+                  </Text>
+                </View>
+                <View style={styles.probabilityBarTrack}>
+                  <View
+                    style={[
+                      styles.probabilityBarSegment,
+                      isExpresswayRecommended
+                        ? styles.probabilityBarWinner
+                        : styles.probabilityBarOther,
+                      { flex: Math.max(expresswayProbPercent, 2) },
+                    ]}
+                  />
+                  <View
+                    style={[
+                      styles.probabilityBarSegment,
+                      !isExpresswayRecommended
+                        ? styles.probabilityBarWinner
+                        : styles.probabilityBarOther,
+                      { flex: Math.max(localProbPercent, 2) },
+                    ]}
+                  />
+                </View>
+              </View>
+            )}
+
+            {isCloseDecision && (
+              <Text style={styles.closeDecisionHint}>
+                僅差の判定です。所要時間と費用の優先度に応じてどちらを選んでも大きな差はありません。
+              </Text>
+            )}
+          </View>
+        )}
+
+        {decision?.source === "rule-based-fallback" && (
+          <View style={styles.fallbackNotice}>
+            <Info size={13} color={colors.neutral[600]} />
+            <Text style={styles.fallbackNoticeText}>
+              標準ルールで判定（AI判定フォールバック • {prioritizeLabel}）
+            </Text>
+          </View>
+        )}
 
         {/* 距離ストリップ */}
         <View style={styles.distanceStrip}>
@@ -519,6 +642,143 @@ const styles = StyleSheet.create({
   },
   alertBanner: {
     width: "100%",
+  },
+  decisionCard: {
+    backgroundColor: colors.base.white,
+    borderWidth: 1,
+    borderColor: colors.neutral[200],
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    gap: 10,
+    width: "100%",
+  },
+  decisionHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    flexWrap: "wrap",
+    gap: 6,
+  },
+  decisionModelBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+  },
+  decisionModelText: {
+    fontSize: 11,
+    lineHeight: 15,
+    fontWeight: "700",
+    color: colors.neutral[800],
+  },
+  decisionRightMeta: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  priorityTag: {
+    backgroundColor: colors.neutral[50],
+    borderWidth: 1,
+    borderColor: colors.neutral[200],
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
+  priorityTagText: {
+    fontSize: 10,
+    lineHeight: 14,
+    fontWeight: "600",
+    color: colors.neutral[700],
+  },
+  confidenceBadge: {
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderWidth: 1,
+  },
+  confidenceBadgeHigh: {
+    backgroundColor: colors.success[50],
+    borderColor: colors.success[200],
+  },
+  confidenceBadgeMedium: {
+    backgroundColor: colors.primary[50],
+    borderColor: colors.primary[200],
+  },
+  confidenceBadgeClose: {
+    backgroundColor: colors.warning[50],
+    borderColor: colors.warning[300],
+  },
+  confidenceBadgeText: {
+    fontSize: 10,
+    lineHeight: 14,
+    fontWeight: "700",
+  },
+  confidenceBadgeTextHigh: {
+    color: colors.success[700],
+  },
+  confidenceBadgeTextMedium: {
+    color: colors.primary[700],
+  },
+  confidenceBadgeTextClose: {
+    color: colors.warning[700],
+  },
+  probabilitySection: {
+    gap: 5,
+  },
+  probabilityLabelRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  probabilityLabel: {
+    fontSize: 11,
+    lineHeight: 15,
+    fontWeight: "600",
+    color: colors.neutral[600],
+  },
+  probabilityLabelWinner: {
+    color: colors.primary[700],
+    fontWeight: "700",
+  },
+  probabilityBarTrack: {
+    flexDirection: "row",
+    height: 8,
+    borderRadius: 999,
+    overflow: "hidden",
+    backgroundColor: colors.neutral[100],
+    gap: 2,
+  },
+  probabilityBarSegment: {
+    height: "100%",
+  },
+  probabilityBarWinner: {
+    backgroundColor: colors.primary[500],
+  },
+  probabilityBarOther: {
+    backgroundColor: colors.neutral[300],
+  },
+  closeDecisionHint: {
+    fontSize: 11,
+    lineHeight: 16,
+    color: colors.warning[700],
+  },
+  fallbackNotice: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: colors.base.white,
+    borderWidth: 1,
+    borderColor: colors.neutral[200],
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    alignSelf: "flex-start",
+  },
+  fallbackNoticeText: {
+    fontSize: 11,
+    lineHeight: 15,
+    color: colors.neutral[600],
+    fontWeight: "500",
   },
   distanceStrip: {
     backgroundColor: colors.base.white,

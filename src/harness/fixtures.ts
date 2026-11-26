@@ -83,6 +83,17 @@ export const scenarioExpresswayRecommended: RouteAnalysisResult = {
     input: defaultRouteInput,
     recommendedRoute: "expressway",
     recommendationReason: "37分の短縮に対する追加費用が、判断基準の範囲内です。",
+    decision: {
+      source: "gemini-decisions-api",
+      model: "gemini-decision-1",
+      confidence: 0.91,
+      probabilities: {
+        expressway: 0.91,
+        local: 0.09,
+      },
+      primaryReasonCode: "strong_time_value",
+      worthPayingTollProbability: 0.89,
+    },
     expresswayRoute: expresswayRouteFixture,
     localRoute: localRouteFixture,
     comparison: {
@@ -92,10 +103,13 @@ export const scenarioExpresswayRecommended: RouteAnalysisResult = {
     },
     trafficIncidents: [],
     warnings: [],
-    dataSources: ["Google Routes API（RouteIQ Harness）"],
+    dataSources: [
+      "Google Routes API（RouteIQ Harness）",
+      "Gemini Decisions API (gemini-decision-1)",
+    ],
     apiFailures: [],
   },
-  dataSources: ["Google Routes API（RouteIQ Harness）"],
+  dataSources: ["Google Routes API（RouteIQ Harness）", "Gemini Decisions API (gemini-decision-1)"],
   warnings: [],
   apiFailures: [],
 };
@@ -114,6 +128,17 @@ export const scenarioLocalRecommended: RouteAnalysisResult = {
     input: defaultRouteInput,
     recommendedRoute: "local",
     recommendationReason: "時間短縮に対する追加費用が大きいため、一般道をおすすめします。",
+    decision: {
+      source: "gemini-decisions-api",
+      model: "gemini-decision-1",
+      confidence: 0.86,
+      probabilities: {
+        expressway: 0.14,
+        local: 0.86,
+      },
+      primaryReasonCode: "cost_too_high_for_time_saved",
+      worthPayingTollProbability: 0.12,
+    },
     expresswayRoute: {
       distanceKm: 18.2,
       durationMinutes: 28,
@@ -139,10 +164,13 @@ export const scenarioLocalRecommended: RouteAnalysisResult = {
     },
     trafficIncidents: [],
     warnings: [],
-    dataSources: ["Google Routes API（RouteIQ Harness）"],
+    dataSources: [
+      "Google Routes API（RouteIQ Harness）",
+      "Gemini Decisions API (gemini-decision-1)",
+    ],
     apiFailures: [],
   },
-  dataSources: ["Google Routes API（RouteIQ Harness）"],
+  dataSources: ["Google Routes API（RouteIQ Harness）", "Gemini Decisions API (gemini-decision-1)"],
   warnings: [],
   apiFailures: [],
 };
@@ -158,6 +186,17 @@ export const scenarioTollUnavailable: RouteAnalysisResult = {
     recommendedRoute: "expressway",
     recommendationReason:
       "料金未確定のため費用だけでは判断できません。確認できる所要時間を優先しておすすめしています。",
+    decision: {
+      source: "gemini-decisions-api",
+      model: "gemini-decision-1",
+      confidence: 0.58,
+      probabilities: {
+        expressway: 0.58,
+        local: 0.42,
+      },
+      primaryReasonCode: "toll_uncertain_time_advantage",
+      worthPayingTollProbability: 0.56,
+    },
     expresswayRoute: tollUnavailableRouteFixture,
     localRoute: localRouteFixture,
     comparison: {
@@ -167,10 +206,13 @@ export const scenarioTollUnavailable: RouteAnalysisResult = {
     },
     trafficIncidents: [],
     warnings: ["高速道路の有料道路料金を取得できませんでした。総額は概算できません。"],
-    dataSources: ["Google Routes API（RouteIQ Harness）"],
+    dataSources: [
+      "Google Routes API（RouteIQ Harness）",
+      "Gemini Decisions API (gemini-decision-1)",
+    ],
     apiFailures: ["高速優先ルートの料金取得APIが未提供"],
   },
-  dataSources: ["Google Routes API（RouteIQ Harness）"],
+  dataSources: ["Google Routes API（RouteIQ Harness）", "Gemini Decisions API (gemini-decision-1)"],
   warnings: ["高速道路の有料道路料金を取得できませんでした。総額は概算できません。"],
   apiFailures: ["高速優先ルートの料金取得APIが未提供"],
 };
@@ -186,6 +228,17 @@ export const scenarioHeavyTraffic: RouteAnalysisResult = {
     recommendedRoute: "local",
     recommendationReason:
       "高速道路で大幅な渋滞が発生しており、一般道ルートの方が所要時間が短いためおすすめします。",
+    decision: {
+      source: "gemini-decisions-api",
+      model: "gemini-decision-1",
+      confidence: 0.95,
+      probabilities: {
+        expressway: 0.05,
+        local: 0.95,
+      },
+      primaryReasonCode: "local_faster_or_expressway_congested",
+      worthPayingTollProbability: 0.04,
+    },
     expresswayRoute: {
       ...expresswayRouteFixture,
       durationMinutes: 135,
@@ -199,10 +252,13 @@ export const scenarioHeavyTraffic: RouteAnalysisResult = {
     },
     trafficIncidents: ["東名高速道路下り 事故による車線規制（15km渋滞）"],
     warnings: ["高速道路で事故渋滞が発生しています。"],
-    dataSources: ["Google Routes API（RouteIQ Harness）"],
+    dataSources: [
+      "Google Routes API（RouteIQ Harness）",
+      "Gemini Decisions API (gemini-decision-1)",
+    ],
     apiFailures: [],
   },
-  dataSources: ["Google Routes API（RouteIQ Harness）"],
+  dataSources: ["Google Routes API（RouteIQ Harness）", "Gemini Decisions API (gemini-decision-1)"],
   warnings: ["高速道路で事故渋滞が発生しています。"],
   apiFailures: [],
 };

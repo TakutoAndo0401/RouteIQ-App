@@ -248,6 +248,47 @@ describe("UIコンポーネント (UI Components)", () => {
         expect(container!.textContent).toContain("15.0 km/L");
         expect(container!.textContent).toContain("170円 / L");
         expect(container!.textContent).toContain("普通車");
+        expect(container!.textContent).toContain("バランス重視");
+      });
+
+      it("優先方針（バランス / 時間優先 / 費用優先）の切替ボタンを押下するとコールバックが発火する", () => {
+        const onChangePrioritize = vi.fn();
+
+        act(() => {
+          root!.render(
+            <SearchTopView
+              origin="東京駅"
+              destination="御殿場IC"
+              fuelEfficiency="15.0"
+              fuelPrice="170"
+              vehicleType="普通車"
+              prioritize="cost"
+              historyList={[]}
+              onChangeOrigin={vi.fn()}
+              onChangeDestination={vi.fn()}
+              onChangePrioritize={onChangePrioritize}
+              onSwapOriginDestination={vi.fn()}
+              onCurrentLocationPress={vi.fn()}
+              onMapSelectPress={vi.fn()}
+              onEditConditionsPress={vi.fn()}
+              onSelectHistory={vi.fn()}
+              onDeleteHistory={vi.fn()}
+              onSubmit={vi.fn()}
+            />,
+          );
+        });
+
+        expect(container!.textContent).toContain("優先方針");
+        expect(container!.textContent).toContain("費用優先");
+
+        const timeOption = container!.querySelector('[aria-label="時間優先"]');
+        expect(timeOption).not.toBeNull();
+
+        act(() => {
+          timeOption!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+        });
+
+        expect(onChangePrioritize).toHaveBeenCalledWith("time");
       });
     });
 

@@ -4,14 +4,21 @@ import {
   type RouteAnalysisRequest,
   type RouteAnalysisResult,
 } from "../../contracts";
-import { buildCompareRoutesResult } from "../recommendation";
+import { buildCompareRoutesResult, buildComparison, toRouteCostSummary } from "../recommendation";
 import type { CompareRoutesResult } from "../types";
 import { GoogleRoutesProvider } from "../providers/googleRoutesProvider";
+import {
+  GeminiDecisionProvider,
+  type RouteDecisionEvaluation,
+  type RouteDecisionEvaluator,
+} from "../providers/geminiDecisionProvider";
 import { fetchFuelPriceAverages } from "./fuelPriceService";
 
 export interface RouteAnalysisServiceOptions {
   apiKey?: string;
+  geminiApiKey?: string;
   provider?: GoogleRoutesProvider;
+  decisionProvider?: RouteDecisionEvaluator;
 }
 
 function makeContextId(): string {
@@ -24,7 +31,7 @@ function routeLabel(route: "expressway" | "local"): string {
 
 function buildRouteSummary(comparison: CompareRoutesResult | undefined): string[] {
   if (!comparison) return [];
-  return [
+  const lines = [
     `経路比較では ${routeLabel(comparison.recommendedRoute)} を推奨します。${comparison.recommendationReason}`,
     `高速優先: ${comparison.expresswayRoute.durationMinutes}分 / ${comparison.expresswayRoute.distanceKm}km / 総額 ${
       comparison.expresswayRoute.totalCostYen === null
@@ -37,6 +44,14 @@ function buildRouteSummary(comparison: CompareRoutesResult | undefined): string[
         : `${comparison.localRoute.totalCostYen}円`
     }`,
   ];
+  if (
+    comparison.decision?.source === "gemini-decisions-api" &&
+    typeof comparison.decision.confidence === "number"
+  ) {
+    const pct = Math.round(comparison.decision.confidence * 100);
+    lines.push(`AI判定 (${comparison.decision.model ?? "gemini-decision-1"}): 確信度 ${pct}%`);
+  }
+  return lines;
 }
 
 export function buildInitialAnswer(params: {
@@ -70,7 +85,14 @@ export function getGoogleMapsApiKey(options?: RouteAnalysisServiceOptions): stri
   );
 }
 
+export function getGeminiApiKey(options?: RouteAnalysisServiceOptions): string | undefined {
+  return (
+    options?.geminiApiKey ?? process.env.EXPO_PUBLIC_GEMINI_API_KEY ?? process.env.GEMINI_API_KEY
+  );
+}
+
 const providerCache = new Map<string, GoogleRoutesProvider>();
+const decisionProviderCache = new Map<string, GeminiDecisionProvider>();
 
 function getOrCreateProvider(apiKey: string): GoogleRoutesProvider {
   let cached = providerCache.get(apiKey);
@@ -81,6 +103,15 @@ function getOrCreateProvider(apiKey: string): GoogleRoutesProvider {
       regionCode: "jp",
     });
     providerCache.set(apiKey, cached);
+  }
+  return cached;
+}
+
+function getOrCreateDecisionProvider(apiKey: string): GeminiDecisionProvider {
+  let cached = decisionProviderCache.get(apiKey);
+  if (!cached) {
+    cached = new GeminiDecisionProvider({ apiKey });
+    decisionProviderCache.set(apiKey, cached);
   }
   return cached;
 }
@@ -152,8 +183,62 @@ export async function analyzeRouteInProcess(
   ]);
 
   const resolvedFuelPrice = fuelResolution.value;
+  const resolvedPrioritize = input.prioritize ?? "balanced";
   const warnings: string[] = [];
+  const decisionApiFailures: string[] = [];
   if (fuelResolution.warning) warnings.push(fuelResolution.warning);
+
+  // Decisions API による高速 / 一般道判定（キー未設定時・障害時は既存ルールベースへ自動フォールバック）
+  let decisionOverride: RouteDecisionEvaluation | undefined;
+  let decisionFallbackReason: string | undefined;
+
+  const geminiApiKey = getGeminiApiKey(options);
+  const decisionEvaluator: RouteDecisionEvaluator | undefined =
+    options?.decisionProvider ??
+    (geminiApiKey && geminiApiKey.trim() !== ""
+      ? getOrCreateDecisionProvider(geminiApiKey.trim())
+      : undefined);
+
+  if (decisionEvaluator) {
+    const expSummary = toRouteCostSummary(
+      expresswayRoute,
+      input.fuelEfficiencyKmPerLiter,
+      resolvedFuelPrice,
+    );
+    const localSummary = toRouteCostSummary(
+      localRoute,
+      input.fuelEfficiencyKmPerLiter,
+      resolvedFuelPrice,
+    );
+    const previewComparison = buildComparison(expSummary, localSummary);
+
+    try {
+      decisionOverride = await decisionEvaluator.decideRoute({
+        origin: input.origin,
+        destination: input.destination,
+        departureTime: input.departureTime,
+        vehicleType: input.vehicleType,
+        fuelEfficiencyKmPerLiter: input.fuelEfficiencyKmPerLiter,
+        fuelPriceYenPerLiter: resolvedFuelPrice,
+        prioritize: resolvedPrioritize,
+        expresswayRoute: expSummary,
+        expresswayCongestionLevel: expresswayRoute.congestionLevel,
+        expresswayWarnings: expresswayRoute.warnings,
+        localRoute: localSummary,
+        localCongestionLevel: localRoute.congestionLevel,
+        localWarnings: localRoute.warnings,
+        comparison: previewComparison,
+        trafficIncidents: [...expresswayRoute.trafficIncidents, ...localRoute.trafficIncidents],
+      });
+    } catch (caught) {
+      const reason = caught instanceof Error ? caught.message : String(caught);
+      decisionFallbackReason = reason;
+      warnings.push(
+        "Gemini Decisions API での判定に失敗したため、標準ルールで推奨ルートを判定しました。",
+      );
+      decisionApiFailures.push(`Gemini Decisions API: ${reason}`);
+    }
+  }
 
   const routeComparison = buildCompareRoutesResult({
     origin: input.origin,
@@ -162,10 +247,13 @@ export async function analyzeRouteInProcess(
     fuelEfficiencyKmPerLiter: input.fuelEfficiencyKmPerLiter,
     fuelPriceYenPerLiter: resolvedFuelPrice,
     vehicleType: input.vehicleType,
-    prioritize: input.prioritize ?? "balanced",
+    prioritize: resolvedPrioritize,
     expresswayRoute,
     localRoute,
     warnings,
+    apiFailures: decisionApiFailures,
+    decisionOverride,
+    decisionFallbackReason,
   });
 
   const answer = buildInitialAnswer({

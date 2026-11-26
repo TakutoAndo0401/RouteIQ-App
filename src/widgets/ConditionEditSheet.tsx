@@ -15,7 +15,7 @@ import { Button } from "../components/ui/Button";
 import { colors } from "../shared/theme/colors";
 
 import { useHarness } from "../harness/HarnessContext";
-import type { FuelPriceAveragesResponse } from "../contracts";
+import type { FuelPriceAveragesResponse, PrioritizeMode } from "../contracts";
 import { defaultFuelPriceAverages } from "../harness/fixtures";
 
 // Module-level cache to keep fuel price averages stable and avoid layout shifts
@@ -30,32 +30,51 @@ export interface ConditionEditSheetProps {
   fuelEfficiency: string;
   fuelPrice: string;
   vehicleType: string;
+  prioritize?: PrioritizeMode;
   onClose: () => void;
-  onSave: (conditions: { fuelEfficiency: string; fuelPrice: string; vehicleType: string }) => void;
+  onSave: (conditions: {
+    fuelEfficiency: string;
+    fuelPrice: string;
+    vehicleType: string;
+    prioritize: PrioritizeMode;
+  }) => void;
 }
 
 // Figma bezier curve: [0.16, 1, 0.3, 1]
 const FIGMA_EASING = Easing.bezier(0.16, 1, 0.3, 1);
 const ENTRANCE_TRANSLATE_Y = 80; // Figma nodeId: 33:3500 initial y: 80
 const VEHICLE_OPTIONS = ["普通車", "大型車", "軽自動車"] as const;
+const PRIORITIZE_OPTIONS: Array<{ value: PrioritizeMode; label: string }> = [
+  { value: "balanced", label: "バランス重視" },
+  { value: "time", label: "時間優先" },
+  { value: "cost", label: "費用優先" },
+];
 
 interface ConditionFormProps {
   initialEfficiency: string;
   initialPrice: string;
   initialVehicle: string;
-  onSave: (conditions: { fuelEfficiency: string; fuelPrice: string; vehicleType: string }) => void;
+  initialPrioritize: PrioritizeMode;
+  onSave: (conditions: {
+    fuelEfficiency: string;
+    fuelPrice: string;
+    vehicleType: string;
+    prioritize: PrioritizeMode;
+  }) => void;
 }
 
 function ConditionForm({
   initialEfficiency,
   initialPrice,
   initialVehicle,
+  initialPrioritize,
   onSave,
 }: ConditionFormProps) {
   const { getFuelPrices } = useHarness();
   const [efficiency, setEfficiency] = useState(initialEfficiency);
   const [price, setPrice] = useState(initialPrice);
   const [vehicle, setVehicle] = useState(initialVehicle);
+  const [prioritize, setPrioritize] = useState<PrioritizeMode>(initialPrioritize);
   const [fuelPrices, setFuelPrices] = useState<FuelPriceAveragesResponse>(
     () => cachedFuelPrices ?? defaultFuelPriceAverages,
   );
@@ -85,8 +104,9 @@ function ConditionForm({
       fuelEfficiency: efficiency,
       fuelPrice: price,
       vehicleType: vehicle,
+      prioritize,
     });
-  }, [onSave, efficiency, price, vehicle]);
+  }, [onSave, efficiency, price, vehicle, prioritize]);
 
   return (
     <>
@@ -163,6 +183,21 @@ function ConditionForm({
         </View>
       </View>
 
+      {/* Prioritize Mode Section */}
+      <View style={styles.vehicleSection}>
+        <Text style={styles.sectionLabel}>優先方針</Text>
+        <View style={styles.radioGroup}>
+          {PRIORITIZE_OPTIONS.map((opt) => (
+            <RadioButton
+              key={opt.value}
+              label={opt.label}
+              selected={prioritize === opt.value}
+              onPress={() => setPrioritize(opt.value)}
+            />
+          ))}
+        </View>
+      </View>
+
       {/* Save Button */}
       <Button label="設定を保存" onPress={handleSave} style={styles.saveBtn} />
     </>
@@ -174,6 +209,7 @@ export const ConditionEditSheet = React.memo(function ConditionEditSheet({
   fuelEfficiency,
   fuelPrice,
   vehicleType,
+  prioritize = "balanced",
   onClose,
   onSave,
 }: ConditionEditSheetProps) {
@@ -219,7 +255,12 @@ export const ConditionEditSheet = React.memo(function ConditionEditSheet({
   }, [runExitAnimation, onClose]);
 
   const handleSaveAndDismiss = useCallback(
-    (conditions: { fuelEfficiency: string; fuelPrice: string; vehicleType: string }) => {
+    (conditions: {
+      fuelEfficiency: string;
+      fuelPrice: string;
+      vehicleType: string;
+      prioritize: PrioritizeMode;
+    }) => {
       runExitAnimation(() => {
         onSave(conditions);
         onClose();
@@ -338,6 +379,7 @@ export const ConditionEditSheet = React.memo(function ConditionEditSheet({
             initialEfficiency={fuelEfficiency}
             initialPrice={fuelPrice}
             initialVehicle={vehicleType}
+            initialPrioritize={prioritize}
             onSave={handleSaveAndDismiss}
           />
         </Animated.View>

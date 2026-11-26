@@ -4,8 +4,10 @@ import type {
   ProviderRouteResult,
   RouteComparison,
   RouteCostSummary,
+  RouteDecisionMetadata,
   RouteType,
 } from "./types";
+import type { RouteDecisionEvaluation } from "./providers/geminiDecisionProvider";
 import { estimateFuelCostYen } from "./fuel";
 
 export function toRouteCostSummary(
@@ -146,6 +148,9 @@ export function buildCompareRoutesResult(params: {
   expresswayRoute: ProviderRouteResult;
   localRoute: ProviderRouteResult;
   warnings: string[];
+  apiFailures?: string[];
+  decisionOverride?: RouteDecisionEvaluation;
+  decisionFallbackReason?: string;
 }): CompareRoutesResult {
   const expresswayRoute = toRouteCostSummary(
     params.expresswayRoute,
@@ -158,12 +163,25 @@ export function buildCompareRoutesResult(params: {
     params.fuelPriceYenPerLiter,
   );
   const comparison = buildComparison(expresswayRoute, localRoute);
-  const recommendation = chooseRecommendedRoute(
-    expresswayRoute,
-    localRoute,
-    comparison,
-    params.prioritize,
-  );
+  const fallbackRecommendation = params.decisionOverride
+    ? undefined
+    : chooseRecommendedRoute(expresswayRoute, localRoute, comparison, params.prioritize);
+
+  const recommendedRoute =
+    params.decisionOverride?.recommendedRoute ?? fallbackRecommendation!.recommendedRoute;
+  const recommendationReason =
+    params.decisionOverride?.recommendationReason ?? fallbackRecommendation!.recommendationReason;
+  const decision: RouteDecisionMetadata = params.decisionOverride
+    ? params.decisionOverride.decision
+    : params.decisionFallbackReason
+      ? {
+          source: "rule-based-fallback",
+          fallbackReason: params.decisionFallbackReason,
+        }
+      : {
+          source: "rule-based",
+        };
+
   const input: CompareRoutesResult["input"] = {
     origin: params.origin,
     destination: params.destination,
@@ -176,7 +194,9 @@ export function buildCompareRoutesResult(params: {
 
   return {
     input,
-    ...recommendation,
+    recommendedRoute,
+    recommendationReason,
+    decision,
     expresswayRoute,
     localRoute,
     comparison,
@@ -192,10 +212,18 @@ export function buildCompareRoutesResult(params: {
       ]),
     ],
     dataSources: [
-      ...new Set([...params.expresswayRoute.dataSources, ...params.localRoute.dataSources]),
+      ...new Set([
+        ...params.expresswayRoute.dataSources,
+        ...params.localRoute.dataSources,
+        ...(params.decisionOverride?.dataSources ?? []),
+      ]),
     ],
     apiFailures: [
-      ...new Set([...params.expresswayRoute.apiFailures, ...params.localRoute.apiFailures]),
+      ...new Set([
+        ...(params.apiFailures ?? []),
+        ...params.expresswayRoute.apiFailures,
+        ...params.localRoute.apiFailures,
+      ]),
     ],
   };
 }

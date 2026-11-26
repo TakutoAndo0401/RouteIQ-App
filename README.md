@@ -6,8 +6,8 @@
 
 ## 主な機能
 
-- **高速 vs 一般道の比較判定**:
-  所要時間の差、高速道路料金、燃料消費量（車種・燃費・ガソリン単価から精密計算）を算出し、時間短縮に対する費用対効果をスコア化。
+- **高速 vs 一般道の比較判定（Gemini Decisions API 対応）**:
+  所要時間の差、高速道路料金、燃料消費量（車種・燃費・ガソリン単価から精密計算）、渋滞度、および優先方針（バランス / 時間優先 / 費用優先）をもとに、Google AI Studio の **Decisions API (`gemini-decision-1`)** が高速・一般道のどちらを使うべきかを確信度・支持確率付きで判定（未設定・障害時は標準ルールへ自動フォールバック）。
 - **リアルタイム交通情報・渋滞分析**:
   Google Routes API と連携し、区間ごとの交通状況や遅延要因を可視化。
 - **インタラクティブ地図**:
@@ -50,6 +50,10 @@ cp .env.example .env
 ```bash
 # Google Cloud Console で「Routes API」を有効化して取得した API キー
 EXPO_PUBLIC_GOOGLE_MAPS_API_KEY=AIzaSy...
+
+# Google AI Studio で取得した Gemini API キー（Decisions API による高速/一般道判定用・任意）
+# 未設定または障害時は既存のルールベース判定へ自動フォールバックします
+EXPO_PUBLIC_GEMINI_API_KEY=AIzaSy...
 ```
 
 > **Note**: Google Cloud Console 側で、API キーに適切な制限（Routes API のみへの制限、Android/iOS アプリ制限など）を設定することを強く推奨します。

@@ -7,9 +7,19 @@ import { Accordion } from "../components/ui/Accordion";
 import { HistoryItem } from "../components/ui/HistoryItem";
 import { ActionFooter } from "../components/ui/ActionFooter";
 import { colors } from "../shared/theme/colors";
-import type { ComparisonHistoryItem } from "../contracts";
+import type { ComparisonHistoryItem, PrioritizeMode } from "../contracts";
 
 export type HistoryEntry = ComparisonHistoryItem;
+
+const PRIORITIZE_OPTIONS: Array<{ value: PrioritizeMode; label: string; fullLabel: string }> = [
+  { value: "balanced", label: "バランス", fullLabel: "バランス重視" },
+  { value: "time", label: "時間優先", fullLabel: "時間優先" },
+  { value: "cost", label: "費用優先", fullLabel: "費用優先" },
+];
+
+function getPrioritizeFullLabel(mode: PrioritizeMode): string {
+  return PRIORITIZE_OPTIONS.find((opt) => opt.value === mode)?.fullLabel ?? "バランス重視";
+}
 
 interface HistoryRowProps {
   item: HistoryEntry;
@@ -71,12 +81,14 @@ export interface SearchTopViewProps {
   fuelEfficiency: string;
   fuelPrice: string;
   vehicleType: string;
+  prioritize?: PrioritizeMode;
   historyList: HistoryEntry[];
   isLoading?: boolean;
   isFetchingLocation?: boolean;
   conditionsAccordionInitiallyOpen?: boolean;
   onChangeOrigin: (text: string) => void;
   onChangeDestination: (text: string) => void;
+  onChangePrioritize?: (mode: PrioritizeMode) => void;
   onSwapOriginDestination: () => void;
   onCurrentLocationPress: () => void;
   onMapSelectPress: (target: "origin" | "destination") => void;
@@ -92,12 +104,14 @@ export const SearchTopView = React.memo(function SearchTopView({
   fuelEfficiency,
   fuelPrice,
   vehicleType,
+  prioritize = "balanced",
   historyList,
   isLoading = false,
   isFetchingLocation = false,
   conditionsAccordionInitiallyOpen = true,
   onChangeOrigin,
   onChangeDestination,
+  onChangePrioritize,
   onSwapOriginDestination,
   onCurrentLocationPress,
   onMapSelectPress,
@@ -127,8 +141,9 @@ export const SearchTopView = React.memo(function SearchTopView({
       { label: "燃費", value: `${fuelEfficiency} km/L` },
       { label: "ガソリン単価", value: `${fuelPrice}円 / L` },
       { label: "車両条件", value: vehicleType },
+      { label: "優先方針", value: getPrioritizeFullLabel(prioritize) },
     ],
-    [fuelEfficiency, fuelPrice, vehicleType],
+    [fuelEfficiency, fuelPrice, vehicleType, prioritize],
   );
 
   return (
@@ -180,6 +195,40 @@ export const SearchTopView = React.memo(function SearchTopView({
             onChangeText={onChangeDestination}
             onMapSelectPress={handleOpenDestinationMap}
           />
+
+          {/* 優先方針クイック切替 (バランス / 時間優先 / 費用優先) */}
+          <View style={styles.prioritySection}>
+            <Text style={styles.priorityLabel}>優先方針</Text>
+            <View style={styles.priorityGroup} accessibilityRole="radiogroup">
+              {PRIORITIZE_OPTIONS.map((option) => {
+                const isSelected = prioritize === option.value;
+                return (
+                  <Pressable
+                    key={option.value}
+                    onPress={() => onChangePrioritize?.(option.value)}
+                    disabled={!onChangePrioritize}
+                    accessibilityRole="radio"
+                    accessibilityLabel={option.fullLabel}
+                    accessibilityState={{ checked: isSelected, selected: isSelected }}
+                    style={({ pressed }) => [
+                      styles.prioritySegment,
+                      isSelected && styles.prioritySegmentActive,
+                      pressed && styles.prioritySegmentPressed,
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.prioritySegmentText,
+                        isSelected && styles.prioritySegmentTextActive,
+                      ]}
+                    >
+                      {option.label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
         </View>
 
         {/* 詳細条件 Accordion (Figma: Accordion) */}
@@ -286,5 +335,55 @@ const styles = StyleSheet.create({
   actionFooter: {
     borderTopWidth: 1,
     borderTopColor: colors.neutral[200],
+  },
+  prioritySection: {
+    gap: 6,
+    marginTop: 4,
+  },
+  priorityLabel: {
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: "600",
+    color: colors.neutral[700],
+  },
+  priorityGroup: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: colors.neutral[50],
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.neutral[200],
+    padding: 3,
+    gap: 4,
+  },
+  prioritySegment: {
+    flex: 1,
+    minHeight: 40,
+    borderRadius: 9,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 8,
+    paddingVertical: 8,
+  },
+  prioritySegmentActive: {
+    backgroundColor: colors.primary[500],
+    shadowColor: "#000000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  prioritySegmentPressed: {
+    opacity: 0.85,
+  },
+  prioritySegmentText: {
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: "600",
+    color: colors.neutral[700],
+  },
+  prioritySegmentTextActive: {
+    color: colors.base.white,
+    fontWeight: "700",
   },
 });

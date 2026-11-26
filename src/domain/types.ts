@@ -1,8 +1,12 @@
 import type {
   CongestionLevel,
+  DecisionReasonCode,
+  DecisionSource,
   PrioritizeMode,
   RouteComparison,
   RouteCostSummary,
+  RouteDecisionMetadata,
+  RouteDecisionProbabilities,
   RouteProviderRequest,
   RouteRequest,
   RouteType,
@@ -11,9 +15,13 @@ import type {
 
 export type {
   CongestionLevel,
+  DecisionReasonCode,
+  DecisionSource,
   PrioritizeMode,
   RouteComparison,
   RouteCostSummary,
+  RouteDecisionMetadata,
+  RouteDecisionProbabilities,
   RouteProviderRequest,
   RouteRequest,
   RouteType,
@@ -49,6 +57,7 @@ export interface CompareRoutesResult extends Record<string, unknown> {
     Pick<RouteRequest, "departureTime" | "fuelPriceYenPerLiter" | "vehicleType" | "prioritize">;
   recommendedRoute: RouteType;
   recommendationReason: string;
+  decision?: RouteDecisionMetadata;
   expresswayRoute: RouteCostSummary;
   localRoute: RouteCostSummary;
   comparison: RouteComparison;

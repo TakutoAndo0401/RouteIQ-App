@@ -96,6 +96,7 @@ async function readResponseBody(response: Response): Promise<{ payload: unknown;
 export interface RequestOptions {
   baseUrl?: string;
   apiKey?: string;
+  geminiApiKey?: string;
   signal?: AbortSignal;
   timeoutMs?: number;
   mode?: "auto" | "in-process" | "remote";
@@ -180,7 +181,10 @@ export async function analyzeRouteApi(
 
   if (!shouldUseRemote) {
     try {
-      return await analyzeRouteInProcess(input, { apiKey: options?.apiKey });
+      return await analyzeRouteInProcess(input, {
+        apiKey: options?.apiKey,
+        geminiApiKey: options?.geminiApiKey,
+      });
     } catch (caught) {
       if (caught instanceof RouteIqApiError) {
         throw caught;

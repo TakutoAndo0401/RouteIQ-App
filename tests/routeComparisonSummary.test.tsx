@@ -456,4 +456,78 @@ describe("ルート比較サマリー画面 (RouteComparisonSummary)", () => {
       });
     });
   });
+
+  describe("Gemini Decisions API 判定メタデータ表示", () => {
+    it("AI判定の確信度と高速・一般道の支持確率バー、優先方針ラベルを描画できる", () => {
+      const aiDecidedResult: CompareRoutesResult = {
+        ...sampleResult,
+        input: {
+          ...sampleResult.input,
+          prioritize: "time",
+        },
+        decision: {
+          source: "gemini-decisions-api",
+          model: "gemini-decision-1",
+          confidence: 0.91,
+          probabilities: { expressway: 0.91, local: 0.09 },
+          primaryReasonCode: "user_priority_time",
+          worthPayingTollProbability: 0.89,
+        },
+      };
+
+      act(() => {
+        root!.render(
+          <RouteComparisonSummary result={aiDecidedResult} origin="東京駅" destination="箱根" />,
+        );
+      });
+
+      const text = container!.textContent ?? "";
+      expect(text).toContain("AI判定 • gemini-decision-1");
+      expect(text).toContain("時間優先");
+      expect(text).toContain("確信度 91%");
+      expect(text).toContain("高速道路 91%");
+      expect(text).toContain("一般道 9%");
+    });
+
+    it("確信度が60%未満の僅差判定では『僅差』バッジと補足メッセージを表示する", () => {
+      const closeCallResult: CompareRoutesResult = {
+        ...sampleResult,
+        decision: {
+          source: "gemini-decisions-api",
+          model: "gemini-decision-1",
+          confidence: 0.55,
+          probabilities: { expressway: 0.55, local: 0.45 },
+        },
+      };
+
+      act(() => {
+        root!.render(
+          <RouteComparisonSummary result={closeCallResult} origin="東京駅" destination="箱根" />,
+        );
+      });
+
+      const text = container!.textContent ?? "";
+      expect(text).toContain("僅差 55%");
+      expect(text).toContain("僅差の判定です");
+    });
+
+    it("AI判定フォールバック時は標準ルール判定の注記を表示する", () => {
+      const fallbackResult: CompareRoutesResult = {
+        ...sampleResult,
+        decision: {
+          source: "rule-based-fallback",
+          fallbackReason: "HTTP 429",
+        },
+      };
+
+      act(() => {
+        root!.render(
+          <RouteComparisonSummary result={fallbackResult} origin="東京駅" destination="箱根" />,
+        );
+      });
+
+      const text = container!.textContent ?? "";
+      expect(text).toContain("標準ルールで判定（AI判定フォールバック");
+    });
+  });
 });

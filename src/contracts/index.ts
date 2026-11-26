@@ -4,6 +4,75 @@ export const routeTypeSchema = z.enum(["expressway", "local"]);
 export const prioritizeSchema = z.enum(["time", "cost", "balanced"]);
 export const congestionLevelSchema = z.enum(["unknown", "low", "moderate", "high"]);
 export const tollConfidenceSchema = z.enum(["api", "unavailable"]);
+export const decisionSourceSchema = z.enum([
+  "gemini-decisions-api",
+  "rule-based-fallback",
+  "rule-based",
+]);
+export const decisionReasonCodeSchema = z.enum([
+  "strong_time_value",
+  "expressway_cheaper_or_equal",
+  "local_faster_or_expressway_congested",
+  "cost_too_high_for_time_saved",
+  "toll_uncertain_time_advantage",
+  "user_priority_time",
+  "user_priority_cost",
+]);
+
+export const routeDecisionProbabilitiesSchema = z.object({
+  expressway: z.number().min(0).max(1),
+  local: z.number().min(0).max(1),
+});
+
+export const routeDecisionMetadataSchema = z.object({
+  source: decisionSourceSchema,
+  model: z.string().optional(),
+  confidence: z.number().min(0).max(1).optional(),
+  probabilities: routeDecisionProbabilitiesSchema.optional(),
+  primaryReasonCode: decisionReasonCodeSchema.optional(),
+  worthPayingTollProbability: z.number().min(0).max(1).optional(),
+  fallbackReason: z.string().optional(),
+});
+
+export const geminiNoulAnswerSchema = z.object({
+  type: z.literal("noul"),
+  noul: z.number().min(0).max(1),
+  confidence: z.number().min(0).max(1),
+});
+
+export const geminiChoiceAnswerSchema = z.object({
+  type: z.literal("choice"),
+  choice: z.string(),
+  probabilities: z.record(z.string(), z.number().min(0).max(1)),
+  confidence: z.number().min(0).max(1),
+});
+
+export const geminiScoreAnswerSchema = z.object({
+  type: z.literal("score"),
+  score: z.number(),
+  probabilities: z.record(z.string(), z.number().min(0).max(1)),
+  legend: z.record(z.string(), z.string()).optional(),
+  confidence: z.number().min(0).max(1),
+});
+
+export const geminiDecisionAnswerSchema = z.discriminatedUnion("type", [
+  geminiNoulAnswerSchema,
+  geminiChoiceAnswerSchema,
+  geminiScoreAnswerSchema,
+]);
+
+export const geminiDecisionPromptFeedbackSchema = z
+  .object({
+    block_reason: z.string().optional(),
+    blockReason: z.string().optional(),
+  })
+  .passthrough();
+
+export const geminiDecisionResponseSchema = z.object({
+  answers: z.record(z.string(), geminiDecisionAnswerSchema).optional(),
+  prompt_feedback: geminiDecisionPromptFeedbackSchema.optional(),
+  usage: z.record(z.string(), z.unknown()).optional(),
+});
 
 export const departureTimeSchema = z.string().datetime();
 
@@ -76,6 +145,7 @@ export const compareRoutesResultSchema = z.object({
   input: routeRequestSchema,
   recommendedRoute: routeTypeSchema,
   recommendationReason: z.string(),
+  decision: routeDecisionMetadataSchema.optional(),
   expresswayRoute: routeCostSummarySchema,
   localRoute: routeCostSummarySchema,
   comparison: routeComparisonSchema,
@@ -143,6 +213,15 @@ export type RouteType = z.infer<typeof routeTypeSchema>;
 export type PrioritizeMode = z.infer<typeof prioritizeSchema>;
 export type CongestionLevel = z.infer<typeof congestionLevelSchema>;
 export type TollConfidence = z.infer<typeof tollConfidenceSchema>;
+export type DecisionSource = z.infer<typeof decisionSourceSchema>;
+export type DecisionReasonCode = z.infer<typeof decisionReasonCodeSchema>;
+export type RouteDecisionProbabilities = z.infer<typeof routeDecisionProbabilitiesSchema>;
+export type RouteDecisionMetadata = z.infer<typeof routeDecisionMetadataSchema>;
+export type GeminiNoulAnswer = z.infer<typeof geminiNoulAnswerSchema>;
+export type GeminiChoiceAnswer = z.infer<typeof geminiChoiceAnswerSchema>;
+export type GeminiScoreAnswer = z.infer<typeof geminiScoreAnswerSchema>;
+export type GeminiDecisionAnswer = z.infer<typeof geminiDecisionAnswerSchema>;
+export type GeminiDecisionResponse = z.infer<typeof geminiDecisionResponseSchema>;
 export type RouteRequest = z.infer<typeof routeRequestSchema>;
 export type RouteInput = RouteRequest;
 export type RouteAnalysisRequest = z.infer<typeof routeAnalysisRequestSchema>;

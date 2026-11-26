@@ -18,7 +18,7 @@ import { LoadingSkeletonView } from "../src/widgets/LoadingSkeletonView";
 import { ErrorStateView } from "../src/widgets/ErrorStateView";
 import { useHarness } from "../src/harness/HarnessContext";
 import { lightTheme } from "../src/shared/theme";
-import type { RouteAnalysisResult } from "../src/contracts";
+import type { PrioritizeMode, RouteAnalysisResult } from "../src/contracts";
 import { describeRouteError, type DescribedRouteError } from "../src/shared/api";
 import { getCurrentLocationWithCoords, type Coordinates } from "../src/domain/location";
 import {
@@ -123,6 +123,7 @@ export default function RouteComparisonScreen() {
   const [fuelEfficiency, setFuelEfficiency] = useState("15.0");
   const [fuelPrice, setFuelPrice] = useState("170");
   const [vehicleType, setVehicleType] = useState("普通車");
+  const [prioritize, setPrioritize] = useState<PrioritizeMode>("balanced");
 
   // Modal State
   const [isMapModalOpen, setIsMapModalOpen] = useState(false);
@@ -138,6 +139,7 @@ export default function RouteComparisonScreen() {
     fuelEfficiency,
     fuelPrice,
     vehicleType,
+    prioritize,
     mapTarget,
     isFetchingLocation,
   });
@@ -150,6 +152,7 @@ export default function RouteComparisonScreen() {
       fuelEfficiency,
       fuelPrice,
       vehicleType,
+      prioritize,
       mapTarget,
       isFetchingLocation,
     };
@@ -161,6 +164,7 @@ export default function RouteComparisonScreen() {
     fuelEfficiency,
     fuelPrice,
     vehicleType,
+    prioritize,
     mapTarget,
     isFetchingLocation,
   ]);
@@ -305,10 +309,16 @@ export default function RouteComparisonScreen() {
   }, []);
 
   const handleSaveConditions = useCallback(
-    (conditions: { fuelEfficiency: string; fuelPrice: string; vehicleType: string }) => {
+    (conditions: {
+      fuelEfficiency: string;
+      fuelPrice: string;
+      vehicleType: string;
+      prioritize: PrioritizeMode;
+    }) => {
       setFuelEfficiency(conditions.fuelEfficiency);
       setFuelPrice(conditions.fuelPrice);
       setVehicleType(conditions.vehicleType);
+      setPrioritize(conditions.prioritize);
       showToast("設定を保存しました", "Success");
     },
     [showToast],
@@ -325,6 +335,7 @@ export default function RouteComparisonScreen() {
       fuelEfficiency: curFuelEfficiency,
       fuelPrice: curFuelPrice,
       vehicleType: curVehicleType,
+      prioritize: curPrioritize,
     } = stateRef.current;
 
     setIsLoading(true);
@@ -338,7 +349,8 @@ export default function RouteComparisonScreen() {
         destination: curDestination,
         fuelEfficiencyKmPerLiter: parseFloat(curFuelEfficiency) || 15.0,
         fuelPriceYenPerLiter: parseFloat(curFuelPrice) || 170,
-        prioritize: "balanced",
+        vehicleType: curVehicleType,
+        prioritize: curPrioritize,
       });
 
       // Prevent UI flicker while ensuring snappy response (300ms)
@@ -401,11 +413,13 @@ export default function RouteComparisonScreen() {
               fuelEfficiency={fuelEfficiency}
               fuelPrice={fuelPrice}
               vehicleType={vehicleType}
+              prioritize={prioritize}
               historyList={historyList}
               isLoading={isLoading}
               isFetchingLocation={isFetchingLocation}
               onChangeOrigin={handleChangeOrigin}
               onChangeDestination={handleChangeDestination}
+              onChangePrioritize={setPrioritize}
               onSwapOriginDestination={handleSwap}
               onCurrentLocationPress={handleCurrentLocationPress}
               onMapSelectPress={handleOpenMap}
@@ -482,6 +496,7 @@ export default function RouteComparisonScreen() {
           fuelEfficiency={fuelEfficiency}
           fuelPrice={fuelPrice}
           vehicleType={vehicleType}
+          prioritize={prioritize}
           onClose={handleCloseConditionModal}
           onSave={handleSaveConditions}
         />

@@ -6,6 +6,8 @@ import {
   providerRouteResultSchema,
   routeCostSummarySchema,
   routeComparisonSchema,
+  routeDecisionMetadataSchema,
+  geminiDecisionResponseSchema,
   compareRoutesResultSchema,
   comparisonHistoryItemSchema,
   fuelPriceAveragesResponseSchema,
@@ -293,6 +295,51 @@ describe("データ定義と入力検証（Contracts & Zod Schema Validation）"
           timeDifferenceMinutes: 10,
           costDifferenceYen: null,
           valueOfTimeSavedYenPerMinute: null,
+        });
+        expect(parsed.success).toBe(true);
+      });
+    });
+
+    describe("decision メタデータ付き結果の検証", () => {
+      it("Gemini Decisions API の判定メタデータを含む比較結果を受け付ける", () => {
+        const parsed = compareRoutesResultSchema.safeParse({
+          ...validComparisonResult,
+          decision: {
+            source: "gemini-decisions-api",
+            model: "gemini-decision-1",
+            confidence: 0.91,
+            probabilities: { expressway: 0.91, local: 0.09 },
+            primaryReasonCode: "strong_time_value",
+            worthPayingTollProbability: 0.88,
+          },
+        });
+        expect(parsed.success).toBe(true);
+      });
+
+      it("確信度が範囲外（1.5など）の判定メタデータはエラーになる", () => {
+        const parsed = routeDecisionMetadataSchema.safeParse({
+          source: "gemini-decisions-api",
+          confidence: 1.5,
+        });
+        expect(parsed.success).toBe(false);
+      });
+
+      it("Gemini Decisions API の choice / noul レスポンス形式を正しく検証できる", () => {
+        const parsed = geminiDecisionResponseSchema.safeParse({
+          answers: {
+            recommended_route: {
+              type: "choice",
+              choice: "expressway",
+              probabilities: { expressway: 0.85, local: 0.15 },
+              confidence: 0.85,
+            },
+            worth_paying_toll: {
+              type: "noul",
+              noul: 0.83,
+              confidence: 0.83,
+            },
+          },
+          usage: { total_output_tokens: 0 },
         });
         expect(parsed.success).toBe(true);
       });
