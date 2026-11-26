@@ -21,7 +21,7 @@ export interface ButtonProps {
   textStyle?: TextStyle;
 }
 
-export function Button({
+export const Button = React.memo(function Button({
   label,
   state = "Default",
   disabled = false,
@@ -70,7 +70,7 @@ export function Button({
       )}
     </Pressable>
   );
-}
+});
 
 const styles = StyleSheet.create({
   base: {

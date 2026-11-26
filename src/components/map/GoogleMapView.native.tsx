@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { View, Text, StyleSheet, Pressable } from "react-native";
 import MapView, {
   Marker,
@@ -23,11 +23,16 @@ import {
   resolveCoordinatesFromText,
   geocodeAddress,
 } from "../../domain/location";
+import { toSimplifiedNativeCoordinates } from "./polylineUtils";
 import type { GoogleMapViewProps } from "./GoogleMapView.types";
 
 export type { GoogleMapViewProps };
 
-export function GoogleMapView({
+const DEFAULT_TOKYO_COORDS: Coordinates = { latitude: 35.6812, longitude: 139.7671 };
+const FIT_EDGE_PADDING = { top: 48, right: 48, bottom: 48, left: 48 };
+const MARKER_ANCHOR = { x: 0.5, y: 0.95 };
+
+function GoogleMapViewNativeInner({
   height = 340,
   centerAddress = "東京駅",
   pinLabel = "選択位置",
@@ -60,7 +65,7 @@ export function GoogleMapView({
   // 基準座標の決定
   const defaultCoords = useMemo<Coordinates>(() => {
     if (initialCoordinates) return initialCoordinates;
-    return resolveCoordinatesFromText(centerAddress, { latitude: 35.6812, longitude: 139.7671 });
+    return resolveCoordinatesFromText(centerAddress, DEFAULT_TOKYO_COORDS);
   }, [initialCoordinates, centerAddress]);
 
   const [pickedCoords, setPickedCoords] = useState<Coordinates | null>(null);
@@ -93,22 +98,19 @@ export function GoogleMapView({
   const originCoords = useMemo<Coordinates>(() => {
     if (originCoordinates) return originCoordinates;
     if (geocodedOrigin) return geocodedOrigin;
-    return resolveCoordinatesFromText(originLabel, { latitude: 35.6812, longitude: 139.7671 });
+    return resolveCoordinatesFromText(originLabel, DEFAULT_TOKYO_COORDS);
   }, [originCoordinates, geocodedOrigin, originLabel]);
 
   const destCoords = useMemo<Coordinates>(() => {
     if (destinationCoordinates) return destinationCoordinates;
     if (geocodedDest) return geocodedDest;
-    return resolveCoordinatesFromText(destinationLabel, { latitude: 35.6812, longitude: 139.7671 });
+    return resolveCoordinatesFromText(destinationLabel, DEFAULT_TOKYO_COORDS);
   }, [destinationCoordinates, geocodedDest, destinationLabel]);
 
-  // 描画用ルート座標列
+  // 描画用ルート座標列（長距離ポリラインは Douglas-Peucker + WeakMapキャッシュで高速軽量化）
   const routePoints = useMemo<Coordinates[]>(() => {
     if (routeCoordinates && routeCoordinates.length > 0) {
-      return routeCoordinates.map((c) => ({
-        latitude: "lat" in c ? c.lat : c.latitude,
-        longitude: "lng" in c ? c.lng : c.longitude,
-      }));
+      return toSimplifiedNativeCoordinates(routeCoordinates);
     }
 
     // デモ用Yoga〜Gotembaルートの場合のみ、東名高速カーブのサンプル中継点を挿入
@@ -136,10 +138,7 @@ export function GoogleMapView({
   // 代替ルート描画用座標列（比較表示用）
   const secondaryRoutePoints = useMemo<Coordinates[]>(() => {
     if (secondaryRouteCoordinates && secondaryRouteCoordinates.length > 0) {
-      return secondaryRouteCoordinates.map((c) => ({
-        latitude: "lat" in c ? c.lat : c.latitude,
-        longitude: "lng" in c ? c.lng : c.longitude,
-      }));
+      return toSimplifiedNativeCoordinates(secondaryRouteCoordinates);
     }
     return [];
   }, [secondaryRouteCoordinates]);
@@ -177,12 +176,13 @@ export function GoogleMapView({
   useEffect(() => {
     if (isRouteMap) {
       if (routePoints.length > 0 && mapRef.current) {
-        setTimeout(() => {
+        const timer = setTimeout(() => {
           mapRef.current?.fitToCoordinates(routePoints, {
-            edgePadding: { top: 48, right: 48, bottom: 48, left: 48 },
+            edgePadding: FIT_EDGE_PADDING,
             animated: true,
           });
         }, 100);
+        return () => clearTimeout(timer);
       }
       return;
     }
@@ -201,23 +201,29 @@ export function GoogleMapView({
   }, [isRouteMap, initialCoordinates, routePoints]);
 
   // 地図タップ時のピン移動ハンドラ
-  const handleMapPress = (e: MapPressEvent) => {
-    if (isRouteMap) return;
-    const coords = e.nativeEvent.coordinate;
-    setPickedCoords(coords);
-    onLocationSelect?.(coords);
-  };
+  const handleMapPress = useCallback(
+    (e: MapPressEvent) => {
+      if (isRouteMap) return;
+      const coords = e.nativeEvent.coordinate;
+      setPickedCoords(coords);
+      onLocationSelect?.(coords);
+    },
+    [isRouteMap, onLocationSelect],
+  );
 
   // ピンのドラッグ終了時ハンドラ
-  const handleMarkerDragEnd = (e: MarkerDragStartEndEvent) => {
-    if (isRouteMap) return;
-    const coords = e.nativeEvent.coordinate;
-    setPickedCoords(coords);
-    onLocationSelect?.(coords);
-  };
+  const handleMarkerDragEnd = useCallback(
+    (e: MarkerDragStartEndEvent) => {
+      if (isRouteMap) return;
+      const coords = e.nativeEvent.coordinate;
+      setPickedCoords(coords);
+      onLocationSelect?.(coords);
+    },
+    [isRouteMap, onLocationSelect],
+  );
 
   // ズームイン・アウト操作
-  const handleZoom = (zoomIn: boolean) => {
+  const handleZoom = useCallback((zoomIn: boolean) => {
     if (!mapRef.current) return;
     mapRef.current
       .getCamera()
@@ -233,10 +239,10 @@ export function GoogleMapView({
       .catch(() => {
         // フォールバック
       });
-  };
+  }, []);
 
   // 選択位置へカメラをリセット
-  const handleRecenter = () => {
+  const handleRecenter = useCallback(() => {
     if (!mapRef.current) return;
     mapRef.current.animateToRegion(
       {
@@ -247,7 +253,7 @@ export function GoogleMapView({
       },
       300,
     );
-  };
+  }, [currentCoords.latitude, currentCoords.longitude]);
 
   const isOriginPin = pinLabel.includes("出発");
   const balloonColor = isOriginPin ? colors.warning[500] : colors.primary[600];
@@ -309,7 +315,7 @@ export function GoogleMapView({
             <Marker
               key={`origin-${originPinLabel}`}
               coordinate={originCoords}
-              anchor={{ x: 0.5, y: 0.95 }}
+              anchor={MARKER_ANCHOR}
               tracksViewChanges={false}
             >
               <View style={styles.routePinContainer}>
@@ -329,7 +335,7 @@ export function GoogleMapView({
             <Marker
               key={`dest-${destinationPinLabel}`}
               coordinate={destCoords}
-              anchor={{ x: 0.5, y: 0.95 }}
+              anchor={MARKER_ANCHOR}
               tracksViewChanges={false}
             >
               <View style={styles.routePinContainer}>
@@ -352,7 +358,7 @@ export function GoogleMapView({
             coordinate={currentCoords}
             draggable
             onDragEnd={handleMarkerDragEnd}
-            anchor={{ x: 0.5, y: 0.95 }}
+            anchor={MARKER_ANCHOR}
             tracksViewChanges={false}
           >
             <View style={styles.customPinContainer}>
@@ -473,6 +479,8 @@ export function GoogleMapView({
     </View>
   );
 }
+
+export const GoogleMapView = React.memo(GoogleMapViewNativeInner);
 
 const styles = StyleSheet.create({
   container: {

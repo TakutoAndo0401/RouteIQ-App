@@ -18,7 +18,32 @@ export interface ErrorStateViewProps {
   onFooterPress?: () => void;
 }
 
-export function ErrorStateView({
+const DEFAULT_ERROR_COPY: Record<ErrorType, { title: string; message: string }> = {
+  network: {
+    title: "接続できませんでした",
+    message: "ネットワーク接続を確認してから、もう一度お試しください。",
+  },
+  rate_limit: {
+    title: "リクエストが集中しています",
+    message: "アクセスが集中しているため、1分ほど待ってから再試行してください。",
+  },
+  server: {
+    title: "サーバーエラーが発生しました",
+    message: "サーバー側で処理を完了できませんでした。時間をおいて再試行してください。",
+  },
+  not_found: {
+    title: "ルートが見つかりませんでした",
+    message:
+      "指定された地点間のルートが見つかりませんでした。出発地または目的地を変更してお試しください。",
+  },
+  unknown: {
+    title: "ルートが見つかりませんでした",
+    message:
+      "指定された地点間のルートが見つかりませんでした。出発地または目的地を変更してお試しください。",
+  },
+};
+
+export const ErrorStateView = React.memo(function ErrorStateView({
   type,
   title: customTitle,
   message: customMessage,
@@ -29,37 +54,10 @@ export function ErrorStateView({
 }: ErrorStateViewProps) {
   const insets = useSafeAreaInsets();
   const isNetwork = type === "network";
+  const defaultCopy = DEFAULT_ERROR_COPY[type] ?? DEFAULT_ERROR_COPY.not_found;
 
-  const defaultTitle = (() => {
-    switch (type) {
-      case "network":
-        return "接続できませんでした";
-      case "rate_limit":
-        return "リクエストが集中しています";
-      case "server":
-        return "サーバーエラーが発生しました";
-      case "not_found":
-      default:
-        return "ルートが見つかりませんでした";
-    }
-  })();
-
-  const defaultMessage = (() => {
-    switch (type) {
-      case "network":
-        return "ネットワーク接続を確認してから、もう一度お試しください。";
-      case "rate_limit":
-        return "アクセスが集中しているため、1分ほど待ってから再試行してください。";
-      case "server":
-        return "サーバー側で処理を完了できませんでした。時間をおいて再試行してください。";
-      case "not_found":
-      default:
-        return "指定された地点間のルートが見つかりませんでした。出発地または目的地を変更してお試しください。";
-    }
-  })();
-
-  const title = customTitle || defaultTitle;
-  const message = customMessage || defaultMessage;
+  const title = customTitle || defaultCopy.title;
+  const message = customMessage || defaultCopy.message;
   const actionButtonLabel =
     customActionButtonLabel ||
     (isNetwork || type === "rate_limit" || type === "server" ? "再試行" : "条件を変更する");
@@ -95,7 +93,7 @@ export function ErrorStateView({
       </View>
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   container: {

@@ -11,7 +11,7 @@ export interface ChipButtonProps {
   textStyle?: TextStyle;
 }
 
-export function ChipButton({
+export const ChipButton = React.memo(function ChipButton({
   label,
   selected = true,
   disabled = false,
@@ -47,7 +47,7 @@ export function ChipButton({
       </Text>
     </Pressable>
   );
-}
+});
 
 const styles = StyleSheet.create({
   chip: {

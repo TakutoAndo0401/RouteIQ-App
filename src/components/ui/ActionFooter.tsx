@@ -14,7 +14,7 @@ export interface ActionFooterProps {
   style?: ViewStyle;
 }
 
-export function ActionFooter({
+export const ActionFooter = React.memo(function ActionFooter({
   label,
   onPress,
   state = "Default",
@@ -49,7 +49,7 @@ export function ActionFooter({
       )}
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   container: {

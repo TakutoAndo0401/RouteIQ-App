@@ -70,6 +70,39 @@ export function getGoogleMapsApiKey(options?: RouteAnalysisServiceOptions): stri
   );
 }
 
+const providerCache = new Map<string, GoogleRoutesProvider>();
+
+function getOrCreateProvider(apiKey: string): GoogleRoutesProvider {
+  let cached = providerCache.get(apiKey);
+  if (!cached) {
+    cached = new GoogleRoutesProvider({
+      apiKey,
+      languageCode: "ja",
+      regionCode: "jp",
+    });
+    providerCache.set(apiKey, cached);
+  }
+  return cached;
+}
+
+function isValidRoutePolyline(polyline: Array<{ lat: number; lng: number }> | undefined): boolean {
+  if (!polyline) return true;
+  for (let i = 0; i < polyline.length; i++) {
+    const pt = polyline[i];
+    if (
+      typeof pt !== "object" ||
+      pt === null ||
+      typeof pt.lat !== "number" ||
+      typeof pt.lng !== "number" ||
+      !Number.isFinite(pt.lat) ||
+      !Number.isFinite(pt.lng)
+    ) {
+      return false;
+    }
+  }
+  return true;
+}
+
 export async function analyzeRouteInProcess(
   rawInput: RouteAnalysisRequest,
   options?: RouteAnalysisServiceOptions,
@@ -83,35 +116,27 @@ export async function analyzeRouteInProcess(
     );
   }
 
-  const provider =
-    options?.provider ??
-    new GoogleRoutesProvider({
-      apiKey: apiKey as string,
-      languageCode: "ja",
-      regionCode: "jp",
-    });
+  const provider = options?.provider ?? getOrCreateProvider(apiKey as string);
 
-  let resolvedFuelPrice = input.fuelPriceYenPerLiter;
-  let fuelPriceWarning: string | undefined;
+  // ガソリン平均価格取得と高速・一般道ルート取得を完全並行実行（直列ウォーターフォールを排除）
+  const fuelPricePromise: Promise<{ value: number; warning?: string }> =
+    typeof input.fuelPriceYenPerLiter === "number"
+      ? Promise.resolve({ value: input.fuelPriceYenPerLiter })
+      : fetchFuelPriceAverages()
+          .then((averages) => {
+            const regular = averages.prices.find((p) => p.label === "レギュラー");
+            if (regular && Number.isFinite(regular.value)) {
+              return { value: regular.value };
+            }
+            return { value: 175 };
+          })
+          .catch(() => ({
+            value: 175,
+            warning: "全国平均ガソリン価格の取得に失敗したため、暫定値 175円/L で計算しました。",
+          }));
 
-  if (typeof resolvedFuelPrice !== "number") {
-    try {
-      const averages = await fetchFuelPriceAverages();
-      const regular = averages.prices.find((p) => p.label === "レギュラー");
-      if (regular && Number.isFinite(regular.value)) {
-        resolvedFuelPrice = regular.value;
-      } else {
-        resolvedFuelPrice = 175;
-      }
-    } catch {
-      resolvedFuelPrice = 175;
-      fuelPriceWarning =
-        "全国平均ガソリン価格の取得に失敗したため、暫定値 175円/L で計算しました。";
-    }
-  }
-
-  // 高速道路ルートと一般道ルートを並行取得
-  const [expresswayRoute, localRoute] = await Promise.all([
+  const [fuelResolution, expresswayRoute, localRoute] = await Promise.all([
+    fuelPricePromise,
     provider.computeRoute({
       origin: input.origin,
       destination: input.destination,
@@ -126,8 +151,9 @@ export async function analyzeRouteInProcess(
     }),
   ]);
 
+  const resolvedFuelPrice = fuelResolution.value;
   const warnings: string[] = [];
-  if (fuelPriceWarning) warnings.push(fuelPriceWarning);
+  if (fuelResolution.warning) warnings.push(fuelResolution.warning);
 
   const routeComparison = buildCompareRoutesResult({
     origin: input.origin,
@@ -170,5 +196,26 @@ export async function analyzeRouteInProcess(
     apiFailures: routeComparison.apiFailures,
   };
 
-  return routeAnalysisResultSchema.parse(result);
+  // 大規模ポリライン配列の Zod 全件複製・再検証コストを回避しつつ、コントラクト検証を維持
+  const expPoly = routeComparison.expresswayRoute.routePolyline;
+  const localPoly = routeComparison.localRoute.routePolyline;
+  if (!isValidRoutePolyline(expPoly) || !isValidRoutePolyline(localPoly)) {
+    return routeAnalysisResultSchema.parse(result);
+  }
+
+  const parsed = routeAnalysisResultSchema.parse({
+    ...result,
+    routeComparison: {
+      ...routeComparison,
+      expresswayRoute: { ...routeComparison.expresswayRoute, routePolyline: undefined },
+      localRoute: { ...routeComparison.localRoute, routePolyline: undefined },
+    },
+  });
+
+  if (parsed.routeComparison) {
+    if (expPoly) parsed.routeComparison.expresswayRoute.routePolyline = expPoly;
+    if (localPoly) parsed.routeComparison.localRoute.routePolyline = localPoly;
+  }
+
+  return parsed;
 }

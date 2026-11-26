@@ -19,7 +19,7 @@ export interface AccordionProps {
   children?: React.ReactNode;
 }
 
-export function Accordion({
+export const Accordion = React.memo(function Accordion({
   title,
   items,
   state,
@@ -83,7 +83,7 @@ export function Accordion({
       )}
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   container: {

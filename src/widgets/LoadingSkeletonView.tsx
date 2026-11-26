@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { View, StyleSheet, ScrollView, Animated } from "react-native";
 import { BackHeader, ActionFooter } from "../components/ui";
 import { colors } from "../shared/theme/colors";
@@ -7,7 +7,9 @@ export interface LoadingSkeletonViewProps {
   onBackPress?: () => void;
 }
 
-export function LoadingSkeletonView({ onBackPress }: LoadingSkeletonViewProps) {
+export const LoadingSkeletonView = React.memo(function LoadingSkeletonView({
+  onBackPress,
+}: LoadingSkeletonViewProps) {
   const [pulseAnim] = useState(() => new Animated.Value(0.4));
 
   useEffect(() => {
@@ -29,6 +31,8 @@ export function LoadingSkeletonView({ onBackPress }: LoadingSkeletonViewProps) {
     return () => pulse.stop();
   }, [pulseAnim]);
 
+  const pulseStyle = useMemo(() => ({ opacity: pulseAnim }), [pulseAnim]);
+
   return (
     <View style={styles.container}>
       <BackHeader title="比較結果" backLabel="戻る" onBackPress={onBackPress} />
@@ -37,74 +41,39 @@ export function LoadingSkeletonView({ onBackPress }: LoadingSkeletonViewProps) {
         {/* Card 1: AlertBanner Skeleton (Figma 118:224) */}
         <View style={styles.card}>
           <View style={styles.bannerRow}>
-            <Animated.View
-              style={[styles.skeletonCircle, { opacity: pulseAnim, width: 24, height: 24 }]}
-            />
-            <Animated.View
-              style={[styles.skeletonBlock, { opacity: pulseAnim, width: 180, height: 16 }]}
-            />
+            <Animated.View style={[styles.skeletonCircle, styles.skCircle24, pulseStyle]} />
+            <Animated.View style={[styles.skeletonBlock, styles.skTitle180, pulseStyle]} />
           </View>
-          <Animated.View
-            style={[styles.skeletonBlock, { opacity: pulseAnim, width: "100%", height: 12 }]}
-          />
-          <Animated.View
-            style={[styles.skeletonBlock, { opacity: pulseAnim, width: 120, height: 12 }]}
-          />
+          <Animated.View style={[styles.skeletonBlock, styles.skLineFull12, pulseStyle]} />
+          <Animated.View style={[styles.skeletonBlock, styles.skLine120, pulseStyle]} />
         </View>
 
         {/* Card 2: Distance Strip Skeleton (Figma 118:230) */}
         <View style={styles.distanceCard}>
-          <Animated.View
-            style={[styles.skeletonBlock, { opacity: pulseAnim, width: "100%", height: 14 }]}
-          />
+          <Animated.View style={[styles.skeletonBlock, styles.skLineFull14, pulseStyle]} />
         </View>
 
         {/* Card 3: Highway Card Skeleton (Figma 118:232) */}
         <View style={styles.card}>
-          <Animated.View
-            style={[
-              styles.skeletonPill,
-              { opacity: pulseAnim, width: 100, height: 16, borderRadius: 100 },
-            ]}
-          />
+          <Animated.View style={[styles.skeletonPill, styles.skPill100, pulseStyle]} />
           <View style={styles.metaRow}>
-            <Animated.View
-              style={[styles.skeletonBlock, { opacity: pulseAnim, width: 140, height: 24 }]}
-            />
-            <Animated.View
-              style={[styles.skeletonBlock, { opacity: pulseAnim, width: 80, height: 14 }]}
-            />
+            <Animated.View style={[styles.skeletonBlock, styles.skDuration140, pulseStyle]} />
+            <Animated.View style={[styles.skeletonBlock, styles.skMeta80, pulseStyle]} />
           </View>
           <View style={styles.divider} />
-          <Animated.View
-            style={[styles.skeletonBlock, { opacity: pulseAnim, width: "100%", height: 40 }]}
-          />
+          <Animated.View style={[styles.skeletonBlock, styles.skCost40, pulseStyle]} />
         </View>
 
         {/* Card 4: General Card Skeleton (Figma 118:239) */}
         <View style={styles.card}>
-          <Animated.View
-            style={[
-              styles.skeletonPill,
-              { opacity: pulseAnim, width: 100, height: 16, borderRadius: 100 },
-            ]}
-          />
-          <Animated.View
-            style={[styles.skeletonBlock, { opacity: pulseAnim, width: 120, height: 24 }]}
-          />
+          <Animated.View style={[styles.skeletonPill, styles.skPill100, pulseStyle]} />
+          <Animated.View style={[styles.skeletonBlock, styles.skDuration120, pulseStyle]} />
         </View>
 
         {/* Card 5: Map Placeholder Skeleton (Figma 118:242) */}
         <View style={styles.card}>
-          <Animated.View
-            style={[styles.skeletonBlock, { opacity: pulseAnim, width: 80, height: 14 }]}
-          />
-          <Animated.View
-            style={[
-              styles.skeletonBlock,
-              { opacity: pulseAnim, width: "100%", height: 110, borderRadius: 12 },
-            ]}
-          />
+          <Animated.View style={[styles.skeletonBlock, styles.skMeta80, pulseStyle]} />
+          <Animated.View style={[styles.skeletonBlock, styles.skMap110, pulseStyle]} />
         </View>
       </ScrollView>
 
@@ -117,7 +86,7 @@ export function LoadingSkeletonView({ onBackPress }: LoadingSkeletonViewProps) {
       />
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   container: {
@@ -173,4 +142,15 @@ const styles = StyleSheet.create({
   skeletonPill: {
     backgroundColor: colors.neutral[200],
   },
+  skCircle24: { width: 24, height: 24 },
+  skTitle180: { width: 180, height: 16 },
+  skLineFull12: { width: "100%", height: 12 },
+  skLine120: { width: 120, height: 12 },
+  skLineFull14: { width: "100%", height: 14 },
+  skPill100: { width: 100, height: 16, borderRadius: 100 },
+  skDuration140: { width: 140, height: 24 },
+  skDuration120: { width: 120, height: 24 },
+  skMeta80: { width: 80, height: 14 },
+  skCost40: { width: "100%", height: 40 },
+  skMap110: { width: "100%", height: 110, borderRadius: 12 },
 });

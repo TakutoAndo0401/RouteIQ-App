@@ -21,7 +21,7 @@ export interface AlertBannerProps {
   descriptionStyle?: TextStyle;
 }
 
-export function AlertBanner({
+export const AlertBanner = React.memo(function AlertBanner({
   title,
   description,
   variant,
@@ -79,7 +79,7 @@ export function AlertBanner({
       </Text>
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   container: {

@@ -1,4 +1,11 @@
-import React, { useState, useCallback, useRef } from "react";
+import React, {
+  useState,
+  useCallback,
+  useRef,
+  useEffect,
+  forwardRef,
+  useImperativeHandle,
+} from "react";
 import { View, StyleSheet, Platform, StatusBar } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { colors } from "../src/shared/theme/colors";
@@ -24,8 +31,83 @@ import {
 
 export type ScreenMode = "input" | "loading" | "results" | "error_network" | "error_not_found";
 
+interface ToastHostHandle {
+  show: (message: string, type?: "Success" | "Error", duration?: number) => void;
+  hide: () => void;
+}
+
+/**
+ * トースト状態を独立管理することで、表示・自動非表示のたびに
+ * 親画面（SearchTopView / RouteComparisonSummary / GoogleMapView）が再描画されるのを完全に防止
+ */
+const ToastHost = React.memo(
+  forwardRef<ToastHostHandle, { hidden: boolean }>(function ToastHost({ hidden }, ref) {
+    const insets = useSafeAreaInsets();
+    const [toast, setToast] = useState<{
+      visible: boolean;
+      message: string;
+      type: "Success" | "Error";
+    }>({
+      visible: false,
+      message: "",
+      type: "Success",
+    });
+    const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    const hide = useCallback(() => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+      setToast((prev) => (prev.visible ? { ...prev, visible: false } : prev));
+    }, []);
+
+    const show = useCallback(
+      (message: string, type: "Success" | "Error" = "Success", duration: number = 3500) => {
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current);
+          timeoutRef.current = null;
+        }
+        setToast({ visible: true, message, type });
+        if (duration > 0) {
+          timeoutRef.current = setTimeout(() => {
+            timeoutRef.current = null;
+            setToast((prev) => (prev.visible ? { ...prev, visible: false } : prev));
+          }, duration);
+        }
+      },
+      [],
+    );
+
+    useImperativeHandle(ref, () => ({ show, hide }), [show, hide]);
+
+    useEffect(() => {
+      return () => {
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current);
+        }
+      };
+    }, []);
+
+    if (!toast.visible || hidden) {
+      return null;
+    }
+
+    return (
+      <View
+        style={[
+          styles.toastOverlayContainer,
+          { bottom: 84 + (insets.bottom > 0 ? insets.bottom : 16) },
+        ]}
+        pointerEvents="none"
+      >
+        <Toast message={toast.message} type={toast.type} />
+      </View>
+    );
+  }),
+);
+
 export default function RouteComparisonScreen() {
-  const insets = useSafeAreaInsets();
   const { analyzeRoute, getFuelPrices } = useHarness();
   const [analysisResult, setAnalysisResult] = useState<RouteAnalysisResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -42,8 +124,49 @@ export default function RouteComparisonScreen() {
   const [fuelPrice, setFuelPrice] = useState("170");
   const [vehicleType, setVehicleType] = useState("普通車");
 
+  // Modal State
+  const [isMapModalOpen, setIsMapModalOpen] = useState(false);
+  const [mapTarget, setMapTarget] = useState<"origin" | "destination">("origin");
+  const [isConditionModalOpen, setIsConditionModalOpen] = useState(false);
+
+  // コールバック参照を安定化するため最新状態を Effect 内で Ref へ同期
+  const stateRef = useRef({
+    origin,
+    destination,
+    originCoords,
+    destinationCoords,
+    fuelEfficiency,
+    fuelPrice,
+    vehicleType,
+    mapTarget,
+    isFetchingLocation,
+  });
+  useEffect(() => {
+    stateRef.current = {
+      origin,
+      destination,
+      originCoords,
+      destinationCoords,
+      fuelEfficiency,
+      fuelPrice,
+      vehicleType,
+      mapTarget,
+      isFetchingLocation,
+    };
+  }, [
+    origin,
+    destination,
+    originCoords,
+    destinationCoords,
+    fuelEfficiency,
+    fuelPrice,
+    vehicleType,
+    mapTarget,
+    isFetchingLocation,
+  ]);
+
   // Load fuel prices on mount to initialize default price with surveyed average
-  React.useEffect(() => {
+  useEffect(() => {
     let isMounted = true;
     getFuelPrices()
       .then((res) => {
@@ -66,7 +189,7 @@ export default function RouteComparisonScreen() {
   const [historyList, setHistoryList] = useState<HistoryEntry[]>([]);
 
   // Load history from AsyncStorage on mount
-  React.useEffect(() => {
+  useEffect(() => {
     let isMounted = true;
     loadStoredHistory().then((items) => {
       if (isMounted) {
@@ -78,54 +201,52 @@ export default function RouteComparisonScreen() {
     };
   }, []);
 
-  // Modal State
-  const [isMapModalOpen, setIsMapModalOpen] = useState(false);
-  const [mapTarget, setMapTarget] = useState<"origin" | "destination">("origin");
-  const [isConditionModalOpen, setIsConditionModalOpen] = useState(false);
-
-  // Toast State (Step 5: Figma 118:308 & 118:358)
-  const [toast, setToast] = useState<{
-    visible: boolean;
-    message: string;
-    type: "Success" | "Error";
-  }>({
-    visible: false,
-    message: "",
-    type: "Success",
-  });
-  const toastTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  // Toast Host Ref (Step 5: Figma 118:308 & 118:358)
+  const toastHostRef = useRef<ToastHostHandle | null>(null);
 
   const showToast = useCallback(
     (message: string, type: "Success" | "Error" = "Success", duration: number = 3500) => {
-      if (toastTimeoutRef.current) {
-        clearTimeout(toastTimeoutRef.current);
-      }
-      setToast({ visible: true, message, type });
-      if (duration > 0) {
-        toastTimeoutRef.current = setTimeout(() => {
-          setToast((prev) => ({ ...prev, visible: false }));
-        }, duration);
-      }
+      toastHostRef.current?.show(message, type, duration);
     },
     [],
   );
 
-  React.useEffect(() => {
+  const hideToast = useCallback(() => {
+    toastHostRef.current?.hide();
+  }, []);
+
+  useEffect(() => {
     if (Platform.OS === "web" && typeof window !== "undefined") {
       (window as unknown as Record<string, unknown>).__setRouteIQScreen = setScreenMode;
       (window as unknown as Record<string, unknown>).__showRouteIQToast = showToast;
     }
   }, [showToast]);
 
-  const handleSwap = () => {
-    setOrigin(destination);
-    setDestination(origin);
-    setOriginCoords(destinationCoords);
-    setDestinationCoords(originCoords);
-  };
+  const handleChangeOrigin = useCallback((text: string) => {
+    setOrigin(text);
+    setOriginCoords(null);
+  }, []);
+
+  const handleChangeDestination = useCallback((text: string) => {
+    setDestination(text);
+    setDestinationCoords(null);
+  }, []);
+
+  const handleSwap = useCallback(() => {
+    const {
+      origin: curOrigin,
+      destination: curDestination,
+      originCoords: curOriginCoords,
+      destinationCoords: curDestinationCoords,
+    } = stateRef.current;
+    setOrigin(curDestination);
+    setDestination(curOrigin);
+    setOriginCoords(curDestinationCoords);
+    setDestinationCoords(curOriginCoords);
+  }, []);
 
   const handleCurrentLocationPress = useCallback(async () => {
-    if (isFetchingLocation) return;
+    if (stateRef.current.isFetchingLocation) return;
     setIsFetchingLocation(true);
     try {
       const { address, coords } = await getCurrentLocationWithCoords();
@@ -139,50 +260,73 @@ export default function RouteComparisonScreen() {
     } finally {
       setIsFetchingLocation(false);
     }
-  }, [isFetchingLocation, showToast]);
+  }, [showToast]);
 
-  const handleSelectHistory = (item: HistoryEntry) => {
+  const handleSelectHistory = useCallback((item: HistoryEntry) => {
     setOrigin(item.origin);
     setDestination(item.destination);
     setOriginCoords(null);
     setDestinationCoords(null);
-  };
+  }, []);
 
-  const handleDeleteHistory = (id: string) => {
+  const handleDeleteHistory = useCallback((id: string) => {
     setHistoryList((prev) => {
       const updated = removeHistoryItem(prev, id);
       void saveStoredHistory(updated);
       return updated;
     });
-  };
+  }, []);
 
-  const handleOpenMap = (target: "origin" | "destination") => {
+  const handleOpenMap = useCallback((target: "origin" | "destination") => {
     setMapTarget(target);
     setIsMapModalOpen(true);
-  };
+  }, []);
 
-  const handleConfirmMapLocation = (address: string, coords?: Coordinates) => {
-    if (mapTarget === "origin") {
+  const handleCloseMapModal = useCallback(() => {
+    setIsMapModalOpen(false);
+  }, []);
+
+  const handleConfirmMapLocation = useCallback((address: string, coords?: Coordinates) => {
+    if (stateRef.current.mapTarget === "origin") {
       setOrigin(address);
       if (coords) setOriginCoords(coords);
     } else {
       setDestination(address);
       if (coords) setDestinationCoords(coords);
     }
-  };
+  }, []);
 
-  const handleSaveConditions = (conditions: {
-    fuelEfficiency: string;
-    fuelPrice: string;
-    vehicleType: string;
-  }) => {
-    setFuelEfficiency(conditions.fuelEfficiency);
-    setFuelPrice(conditions.fuelPrice);
-    setVehicleType(conditions.vehicleType);
-    showToast("設定を保存しました", "Success");
-  };
+  const handleOpenConditionModal = useCallback(() => {
+    setIsConditionModalOpen(true);
+  }, []);
+
+  const handleCloseConditionModal = useCallback(() => {
+    setIsConditionModalOpen(false);
+  }, []);
+
+  const handleSaveConditions = useCallback(
+    (conditions: { fuelEfficiency: string; fuelPrice: string; vehicleType: string }) => {
+      setFuelEfficiency(conditions.fuelEfficiency);
+      setFuelPrice(conditions.fuelPrice);
+      setVehicleType(conditions.vehicleType);
+      showToast("設定を保存しました", "Success");
+    },
+    [showToast],
+  );
+
+  const handleBackToInput = useCallback(() => {
+    setScreenMode("input");
+  }, []);
 
   const handleCompareRoutes = useCallback(async () => {
+    const {
+      origin: curOrigin,
+      destination: curDestination,
+      fuelEfficiency: curFuelEfficiency,
+      fuelPrice: curFuelPrice,
+      vehicleType: curVehicleType,
+    } = stateRef.current;
+
     setIsLoading(true);
     setScreenMode("loading");
 
@@ -190,10 +334,10 @@ export default function RouteComparisonScreen() {
     const startTime = Date.now();
     try {
       const result = await analyzeRoute({
-        origin,
-        destination,
-        fuelEfficiencyKmPerLiter: parseFloat(fuelEfficiency) || 15.0,
-        fuelPriceYenPerLiter: parseFloat(fuelPrice) || 170,
+        origin: curOrigin,
+        destination: curDestination,
+        fuelEfficiencyKmPerLiter: parseFloat(curFuelEfficiency) || 15.0,
+        fuelPriceYenPerLiter: parseFloat(curFuelPrice) || 170,
         prioritize: "balanced",
       });
 
@@ -209,16 +353,17 @@ export default function RouteComparisonScreen() {
       showToast("ルート検索が完了しました", "Success");
 
       // 履歴へ自動追加 & 永続化保存（重複排除・最大10件）
-      const trimmedOrigin = origin.trim();
-      const trimmedDestination = destination.trim();
+      const trimmedOrigin = curOrigin.trim();
+      const trimmedDestination = curDestination.trim();
       if (trimmedOrigin && trimmedDestination) {
+        const now = Date.now();
         const newItem: HistoryEntry = {
-          id: `hist-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+          id: `hist-${now}-${Math.random().toString(36).slice(2, 7)}`,
           origin: trimmedOrigin,
           destination: trimmedDestination,
-          vehicleType,
-          date: formatHistoryDate(new Date()),
-          timestamp: Date.now(),
+          vehicleType: curVehicleType,
+          date: formatHistoryDate(new Date(now)),
+          timestamp: now,
         };
         setHistoryList((prev) => {
           const updated = addOrUpdateHistoryItem(prev, newItem, 10);
@@ -235,14 +380,11 @@ export default function RouteComparisonScreen() {
         setScreenMode("error_not_found");
       }
       // エラー画面（ErrorStateView）自体でエラー詳細とリカバリを表示するためトーストは不要
-      if (toastTimeoutRef.current) {
-        clearTimeout(toastTimeoutRef.current);
-      }
-      setToast((prev) => ({ ...prev, visible: false }));
+      hideToast();
     } finally {
       setIsLoading(false);
     }
-  }, [analyzeRoute, origin, destination, fuelEfficiency, fuelPrice, vehicleType, showToast]);
+  }, [analyzeRoute, showToast, hideToast]);
 
   const isErrorScreen = screenMode === "error_network" || screenMode === "error_not_found";
 
@@ -262,18 +404,12 @@ export default function RouteComparisonScreen() {
               historyList={historyList}
               isLoading={isLoading}
               isFetchingLocation={isFetchingLocation}
-              onChangeOrigin={(text) => {
-                setOrigin(text);
-                setOriginCoords(null);
-              }}
-              onChangeDestination={(text) => {
-                setDestination(text);
-                setDestinationCoords(null);
-              }}
+              onChangeOrigin={handleChangeOrigin}
+              onChangeDestination={handleChangeDestination}
               onSwapOriginDestination={handleSwap}
               onCurrentLocationPress={handleCurrentLocationPress}
               onMapSelectPress={handleOpenMap}
-              onEditConditionsPress={() => setIsConditionModalOpen(true)}
+              onEditConditionsPress={handleOpenConditionModal}
               onSelectHistory={handleSelectHistory}
               onDeleteHistory={handleDeleteHistory}
               onSubmit={handleCompareRoutes}
@@ -282,18 +418,12 @@ export default function RouteComparisonScreen() {
         )}
 
         {/* 5. ローディングスケルトン (Figma 118:206) */}
-        {screenMode === "loading" && (
-          <LoadingSkeletonView onBackPress={() => setScreenMode("input")} />
-        )}
+        {screenMode === "loading" && <LoadingSkeletonView onBackPress={handleBackToInput} />}
 
         {/* 4. 検索結果画面 (Figma 33:3338) */}
         {screenMode === "results" && analysisResult?.routeComparison && (
           <View style={[styles.resultsContainer, isMapModalOpen && styles.hiddenBehindModal]}>
-            <BackHeader
-              title="比較結果"
-              backLabel="戻る"
-              onBackPress={() => setScreenMode("input")}
-            />
+            <BackHeader title="比較結果" backLabel="戻る" onBackPress={handleBackToInput} />
             <RouteComparisonSummary
               theme={lightTheme}
               result={analysisResult.routeComparison}
@@ -302,7 +432,7 @@ export default function RouteComparisonScreen() {
               destination={destination}
               originCoordinates={originCoords ?? undefined}
               destinationCoordinates={destinationCoords ?? undefined}
-              onBackToSearch={() => setScreenMode("input")}
+              onBackToSearch={handleBackToInput}
             />
           </View>
         )}
@@ -314,7 +444,7 @@ export default function RouteComparisonScreen() {
             title={errorDetails?.title}
             message={errorDetails?.message}
             recovery={errorDetails?.recovery}
-            onBackPress={() => setScreenMode("input")}
+            onBackPress={handleBackToInput}
             onActionPress={handleCompareRoutes}
           />
         )}
@@ -332,10 +462,8 @@ export default function RouteComparisonScreen() {
             title={errorDetails?.title}
             message={errorDetails?.message}
             recovery={errorDetails?.recovery}
-            onBackPress={() => setScreenMode("input")}
-            onActionPress={
-              errorDetails?.retryable ? handleCompareRoutes : () => setScreenMode("input")
-            }
+            onBackPress={handleBackToInput}
+            onActionPress={errorDetails?.retryable ? handleCompareRoutes : handleBackToInput}
           />
         )}
 
@@ -344,7 +472,7 @@ export default function RouteComparisonScreen() {
           visible={isMapModalOpen}
           target={mapTarget}
           currentAddress={mapTarget === "origin" ? origin : destination}
-          onClose={() => setIsMapModalOpen(false)}
+          onClose={handleCloseMapModal}
           onConfirm={handleConfirmMapLocation}
         />
 
@@ -354,22 +482,12 @@ export default function RouteComparisonScreen() {
           fuelEfficiency={fuelEfficiency}
           fuelPrice={fuelPrice}
           vehicleType={vehicleType}
-          onClose={() => setIsConditionModalOpen(false)}
+          onClose={handleCloseConditionModal}
           onSave={handleSaveConditions}
         />
 
         {/* トースト表示 (Step 5: Figma 118:308 & 118:358 - エラー画面では非表示) */}
-        {toast.visible && !isErrorScreen && (
-          <View
-            style={[
-              styles.toastOverlayContainer,
-              { bottom: 84 + (insets.bottom > 0 ? insets.bottom : 16) },
-            ]}
-            pointerEvents="none"
-          >
-            <Toast message={toast.message} type={toast.type} />
-          </View>
-        )}
+        <ToastHost ref={toastHostRef} hidden={isErrorScreen} />
       </View>
     </SafeAreaView>
   );

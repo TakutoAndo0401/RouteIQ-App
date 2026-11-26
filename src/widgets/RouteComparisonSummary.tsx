@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import {
   View,
   Text,
@@ -46,7 +46,7 @@ const formatETA = (minutes: number, baseDate: Date) => {
   return `${hh}:${mm < 10 ? "0" + mm : mm}着`;
 };
 
-export function RouteComparisonSummary({
+export const RouteComparisonSummary = React.memo(function RouteComparisonSummary({
   result,
   answerText,
   origin = "用賀IC",
@@ -76,14 +76,14 @@ export function RouteComparisonSummary({
   const polylineCoords = activeRoute.routePolyline;
   const secondaryPolylineCoords = secondaryRoute.routePolyline;
 
-  const effectiveOriginCoords = React.useMemo(() => {
+  const effectiveOriginCoords = useMemo(() => {
     if (polylineCoords && polylineCoords.length > 0) {
       return { latitude: polylineCoords[0].lat, longitude: polylineCoords[0].lng };
     }
     return originCoordinates;
   }, [polylineCoords, originCoordinates]);
 
-  const effectiveDestCoords = React.useMemo(() => {
+  const effectiveDestCoords = useMemo(() => {
     if (polylineCoords && polylineCoords.length > 0) {
       const last = polylineCoords[polylineCoords.length - 1];
       return { latitude: last.lat, longitude: last.lng };
@@ -97,7 +97,7 @@ export function RouteComparisonSummary({
   const viaHighway =
     result.expresswayRoute.majorHighway || result.expresswayRoute.highwayNames?.[0];
 
-  const highwayBreakdown = React.useMemo(() => {
+  const highwayBreakdown = useMemo(() => {
     const toll = result.expresswayRoute.tollYen;
     if (toll === null || toll === 0) {
       return undefined;
@@ -130,10 +130,53 @@ export function RouteComparisonSummary({
     return [{ label: "高速・有料道路利用料", amount: tollStr }];
   }, [result.expresswayRoute]);
 
-  const handleOpenExternalGoogleMaps = () => {
+  // ルート切替時に変化しないフォーマット済みテキスト群をメモ化
+  const formattedMetrics = useMemo(() => {
+    const expDuration = result.expresswayRoute.durationMinutes || 75;
+    const localDuration = result.localRoute.durationMinutes || 145;
+    const tollFormatted = expresswayToll.toLocaleString();
+    return {
+      expDurationText: formatDuration(expDuration),
+      expEtaText: formatETA(expDuration, baseDate),
+      expTollText: `料金: ¥${tollFormatted}`,
+      expTotalTollText: `¥${tollFormatted}`,
+      expTollShort: `¥${tollFormatted}`,
+      expFuelText: `燃料費: 約${result.expresswayRoute.fuelCostYen.toLocaleString()}円`,
+      localDurationText: formatDuration(localDuration),
+      localEtaText: formatETA(localDuration, baseDate),
+      localFuelText: `燃料費: 約${result.localRoute.fuelCostYen.toLocaleString()}円`,
+    };
+  }, [result.expresswayRoute, result.localRoute, expresswayToll, baseDate]);
+
+  const handleSelectExpressway = useCallback(() => setSelectedRouteType("expressway"), []);
+  const handleSelectLocal = useCallback(() => setSelectedRouteType("local"), []);
+  const handleOpenFullscreen = useCallback(() => setIsFullscreenModalOpen(true), []);
+  const handleCloseFullscreen = useCallback(() => setIsFullscreenModalOpen(false), []);
+
+  const handleOpenExternalGoogleMaps = useCallback(() => {
     const url = buildGoogleMapsDirectionsUrl(origin, destination);
     void Linking.openURL(url);
-  };
+  }, [origin, destination]);
+
+  const modalInitialMetrics = useMemo(
+    () => ({
+      frame: {
+        x: 0,
+        y: 0,
+        width: Dimensions.get("window").width,
+        height: Dimensions.get("window").height,
+      },
+      insets,
+    }),
+    [insets],
+  );
+
+  const alertTitle = isExpresswayRecommended
+    ? "高速道路ルートがおすすめ"
+    : "一般道ルートがおすすめ";
+  const alertDescription =
+    result.recommendationReason ||
+    "所要時間を1時間10分短縮できます。時間価値を考慮すると高速道路がお得です。";
 
   return (
     <View style={styles.outerContainer}>
@@ -145,11 +188,8 @@ export function RouteComparisonSummary({
         {/* おすすめハイライト (Alert Banner) */}
         <AlertBanner
           type="Recommendation"
-          title={isExpresswayRecommended ? "高速道路ルートがおすすめ" : "一般道ルートがおすすめ"}
-          description={
-            result.recommendationReason ||
-            "所要時間を1時間10分短縮できます。時間価値を考慮すると高速道路がお得です。"
-          }
+          title={alertTitle}
+          description={alertDescription}
           style={styles.alertBanner}
         />
 
@@ -168,14 +208,14 @@ export function RouteComparisonSummary({
             type="highway"
             badgeLabel="高速道路ルート"
             viaHighway={viaHighway}
-            durationText={formatDuration(result.expresswayRoute.durationMinutes || 75)}
-            etaText={formatETA(result.expresswayRoute.durationMinutes || 75, baseDate)}
-            tollText={`料金: ¥${expresswayToll.toLocaleString()}`}
-            fuelText={`燃料費: 約${result.expresswayRoute.fuelCostYen.toLocaleString()}円`}
+            durationText={formattedMetrics.expDurationText}
+            etaText={formattedMetrics.expEtaText}
+            tollText={formattedMetrics.expTollText}
+            fuelText={formattedMetrics.expFuelText}
             isRecommended={isExpresswayRecommended}
             tollBreakdown={highwayBreakdown}
-            totalTollText={`¥${expresswayToll.toLocaleString()}`}
-            onPress={() => setSelectedRouteType("expressway")}
+            totalTollText={formattedMetrics.expTotalTollText}
+            onPress={handleSelectExpressway}
             style={selectedRouteType === "expressway" ? styles.selectedCardHighlight : undefined}
           />
 
@@ -183,12 +223,12 @@ export function RouteComparisonSummary({
           <RouteCard
             type="general"
             badgeLabel="一般道ルート"
-            durationText={formatDuration(result.localRoute.durationMinutes || 145)}
-            etaText={formatETA(result.localRoute.durationMinutes || 145, baseDate)}
+            durationText={formattedMetrics.localDurationText}
+            etaText={formattedMetrics.localEtaText}
             tollText="料金: なし (0円)"
-            fuelText={`燃料費: 約${result.localRoute.fuelCostYen.toLocaleString()}円`}
+            fuelText={formattedMetrics.localFuelText}
             isRecommended={!isExpresswayRecommended}
-            onPress={() => setSelectedRouteType("local")}
+            onPress={handleSelectLocal}
             style={selectedRouteType === "local" ? styles.selectedCardHighlight : undefined}
           />
         </View>
@@ -210,7 +250,7 @@ export function RouteComparisonSummary({
             {/* ルート切り替えスイッチ (高速 / 一般道) */}
             <View style={styles.routeSwitchGroup}>
               <Pressable
-                onPress={() => setSelectedRouteType("expressway")}
+                onPress={handleSelectExpressway}
                 style={({ pressed }) => [
                   styles.routeSwitchBtn,
                   selectedRouteType === "expressway" && styles.routeSwitchBtnActive,
@@ -237,7 +277,7 @@ export function RouteComparisonSummary({
                 </Text>
               </Pressable>
               <Pressable
-                onPress={() => setSelectedRouteType("local")}
+                onPress={handleSelectLocal}
                 style={({ pressed }) => [
                   styles.routeSwitchBtn,
                   selectedRouteType === "local" && styles.routeSwitchBtnActive,
@@ -268,7 +308,7 @@ export function RouteComparisonSummary({
             <View style={styles.mapActionRow}>
               {/* 全画面モーダル表示 */}
               <Pressable
-                onPress={() => setIsFullscreenModalOpen(true)}
+                onPress={handleOpenFullscreen}
                 style={({ pressed }) => [
                   styles.mapHeaderBtn,
                   styles.mapHeaderBtnPrimary,
@@ -330,127 +370,116 @@ export function RouteComparisonSummary({
         <ActionFooter label="条件を変更して再検索" onPress={onBackToSearch} state="Default" />
       )}
 
-      {/* 全画面地図モーダル */}
-      <Modal
-        visible={isFullscreenModalOpen}
-        transparent={false}
-        animationType="slide"
-        onRequestClose={() => setIsFullscreenModalOpen(false)}
-        statusBarTranslucent={true}
-        presentationStyle="fullScreen"
-      >
-        <SafeAreaProvider
-          style={{ flex: 1, backgroundColor: colors.base.white }}
-          initialMetrics={{
-            frame: {
-              x: 0,
-              y: 0,
-              width: Dimensions.get("window").width,
-              height: Dimensions.get("window").height,
-            },
-            insets,
-          }}
+      {/* 全画面地図モーダル（開いている時のみ描画） */}
+      {isFullscreenModalOpen && (
+        <Modal
+          visible={true}
+          transparent={false}
+          animationType="slide"
+          onRequestClose={handleCloseFullscreen}
+          statusBarTranslucent={true}
+          presentationStyle="fullScreen"
         >
-          <View style={[styles.fullscreenContainer, { paddingBottom: safeBottom }]}>
-            <StatusBar style="dark" backgroundColor={colors.base.white} translucent={true} />
+          <SafeAreaProvider style={styles.fullscreenSafeArea} initialMetrics={modalInitialMetrics}>
+            <View style={[styles.fullscreenContainer, { paddingBottom: safeBottom }]}>
+              <StatusBar style="dark" backgroundColor={colors.base.white} translucent={true} />
 
-            {/* Header: ステータスバー・Dynamic Island領域まで白背景を伸ばし、UI要素は安全領域下に配置 */}
-            <View style={[styles.fullscreenHeader, { paddingTop: safeTop + 6 }]}>
-              <Pressable
-                onPress={() => setIsFullscreenModalOpen(false)}
-                style={({ pressed }) => [
-                  styles.fullscreenCloseBtn,
-                  pressed && styles.fullscreenCloseBtnPressed,
-                ]}
-                hitSlop={8}
-                accessibilityRole="button"
-                accessibilityLabel="全画面表示を閉じる"
-              >
-                <X size={20} color={colors.neutral[800]} />
-                <Text style={styles.fullscreenCloseText}>閉じる</Text>
-              </Pressable>
-              <Pressable
-                onPress={handleOpenExternalGoogleMaps}
-                style={({ pressed }) => [
-                  styles.fullscreenExternalBtn,
-                  pressed && styles.fullscreenExternalBtnPressed,
-                ]}
-                hitSlop={8}
-                accessibilityRole="button"
-                accessibilityLabel="Googleマップアプリで開く"
-              >
-                <ExternalLink size={15} color={colors.base.white} />
-                <Text style={styles.fullscreenExternalText}>外部アプリ</Text>
-              </Pressable>
-            </View>
-
-            {/* Quick Route Summary Ribbon */}
-            <View style={styles.fullscreenRibbon}>
-              <Pressable
-                onPress={() => setSelectedRouteType("expressway")}
-                style={[
-                  styles.ribbonItem,
-                  selectedRouteType === "expressway" && styles.ribbonItemActive,
-                ]}
-                accessibilityRole="button"
-                accessibilityLabel="高速道路ルートを選択"
-              >
-                <Text
-                  style={[
-                    styles.ribbonLabel,
-                    selectedRouteType === "expressway" && styles.ribbonLabelActive,
+              {/* Header: ステータスバー・Dynamic Island領域まで白背景を伸ばし、UI要素は安全領域下に配置 */}
+              <View style={[styles.fullscreenHeader, { paddingTop: safeTop + 6 }]}>
+                <Pressable
+                  onPress={handleCloseFullscreen}
+                  style={({ pressed }) => [
+                    styles.fullscreenCloseBtn,
+                    pressed && styles.fullscreenCloseBtnPressed,
                   ]}
+                  hitSlop={8}
+                  accessibilityRole="button"
+                  accessibilityLabel="全画面表示を閉じる"
                 >
-                  高速道路 {selectedRouteType === "expressway" ? "✓" : ""}
-                </Text>
-                <Text
-                  style={[
-                    styles.ribbonValue,
-                    selectedRouteType === "expressway" && styles.ribbonValueActive,
+                  <X size={20} color={colors.neutral[800]} />
+                  <Text style={styles.fullscreenCloseText}>閉じる</Text>
+                </Pressable>
+                <Pressable
+                  onPress={handleOpenExternalGoogleMaps}
+                  style={({ pressed }) => [
+                    styles.fullscreenExternalBtn,
+                    pressed && styles.fullscreenExternalBtnPressed,
                   ]}
+                  hitSlop={8}
+                  accessibilityRole="button"
+                  accessibilityLabel="Googleマップアプリで開く"
                 >
-                  {formatDuration(result.expresswayRoute.durationMinutes || 75)}
-                  {"  "}(¥{expresswayToll.toLocaleString()})
-                </Text>
-              </Pressable>
-              <View style={styles.ribbonDivider} />
-              <Pressable
-                onPress={() => setSelectedRouteType("local")}
-                style={[
-                  styles.ribbonItem,
-                  selectedRouteType === "local" && styles.ribbonItemActive,
-                ]}
-                accessibilityRole="button"
-                accessibilityLabel="一般道ルートを選択"
-              >
-                <Text
-                  style={[
-                    styles.ribbonLabel,
-                    selectedRouteType === "local" && styles.ribbonLabelActive,
-                  ]}
-                >
-                  一般道 {selectedRouteType === "local" ? "✓" : ""}
-                </Text>
-                <Text
-                  style={[
-                    styles.ribbonValue,
-                    selectedRouteType === "local" && styles.ribbonValueActive,
-                  ]}
-                >
-                  {formatDuration(result.localRoute.durationMinutes || 145)}
-                  {"  "}(¥0)
-                </Text>
-              </Pressable>
-              <View style={styles.ribbonDivider} />
-              <View style={styles.ribbonItem}>
-                <Text style={styles.ribbonLabel}>総距離</Text>
-                <Text style={styles.ribbonValue}>{distanceKm.toFixed(1)} km</Text>
+                  <ExternalLink size={15} color={colors.base.white} />
+                  <Text style={styles.fullscreenExternalText}>外部アプリ</Text>
+                </Pressable>
               </View>
-            </View>
 
-            {/* Fullscreen Map Area */}
-            <View style={styles.fullscreenMapBox}>
-              {isFullscreenModalOpen && (
+              {/* Quick Route Summary Ribbon */}
+              <View style={styles.fullscreenRibbon}>
+                <Pressable
+                  onPress={handleSelectExpressway}
+                  style={[
+                    styles.ribbonItem,
+                    selectedRouteType === "expressway" && styles.ribbonItemActive,
+                  ]}
+                  accessibilityRole="button"
+                  accessibilityLabel="高速道路ルートを選択"
+                >
+                  <Text
+                    style={[
+                      styles.ribbonLabel,
+                      selectedRouteType === "expressway" && styles.ribbonLabelActive,
+                    ]}
+                  >
+                    高速道路 {selectedRouteType === "expressway" ? "✓" : ""}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.ribbonValue,
+                      selectedRouteType === "expressway" && styles.ribbonValueActive,
+                    ]}
+                  >
+                    {formattedMetrics.expDurationText}
+                    {"  "}({formattedMetrics.expTollShort})
+                  </Text>
+                </Pressable>
+                <View style={styles.ribbonDivider} />
+                <Pressable
+                  onPress={handleSelectLocal}
+                  style={[
+                    styles.ribbonItem,
+                    selectedRouteType === "local" && styles.ribbonItemActive,
+                  ]}
+                  accessibilityRole="button"
+                  accessibilityLabel="一般道ルートを選択"
+                >
+                  <Text
+                    style={[
+                      styles.ribbonLabel,
+                      selectedRouteType === "local" && styles.ribbonLabelActive,
+                    ]}
+                  >
+                    一般道 {selectedRouteType === "local" ? "✓" : ""}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.ribbonValue,
+                      selectedRouteType === "local" && styles.ribbonValueActive,
+                    ]}
+                  >
+                    {formattedMetrics.localDurationText}
+                    {"  "}(¥0)
+                  </Text>
+                </Pressable>
+                <View style={styles.ribbonDivider} />
+                <View style={styles.ribbonItem}>
+                  <Text style={styles.ribbonLabel}>総距離</Text>
+                  <Text style={styles.ribbonValue}>{distanceKm.toFixed(1)} km</Text>
+                </View>
+              </View>
+
+              {/* Fullscreen Map Area */}
+              <View style={styles.fullscreenMapBox}>
                 <GoogleMapView
                   height="100%"
                   isRouteMap={true}
@@ -465,14 +494,14 @@ export function RouteComparisonSummary({
                   showFitButton={true}
                   style={styles.fullscreenMapInner}
                 />
-              )}
+              </View>
             </View>
-          </View>
-        </SafeAreaProvider>
-      </Modal>
+          </SafeAreaProvider>
+        </Modal>
+      )}
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   outerContainer: {
@@ -603,6 +632,10 @@ const styles = StyleSheet.create({
   },
 
   // 全画面モーダル用スタイル
+  fullscreenSafeArea: {
+    flex: 1,
+    backgroundColor: colors.base.white,
+  },
   fullscreenContainer: {
     flex: 1,
     backgroundColor: colors.base.white,

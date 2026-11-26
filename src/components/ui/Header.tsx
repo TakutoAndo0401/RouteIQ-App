@@ -11,7 +11,7 @@ export interface HeaderProps {
   tagStyle?: TextStyle;
 }
 
-export function Header({
+export const Header = React.memo(function Header({
   title = "道路状況チェック",
   tag = "ROUTEIQ | CALM UTILITY",
   style,
@@ -24,7 +24,7 @@ export function Header({
       <Text style={[styles.brandTitle, titleStyle]}>{title}</Text>
     </View>
   );
-}
+});
 
 export interface BackHeaderProps {
   title: string;
@@ -34,7 +34,7 @@ export interface BackHeaderProps {
   titleStyle?: TextStyle;
 }
 
-export function BackHeader({
+export const BackHeader = React.memo(function BackHeader({
   title,
   backLabel = "戻る",
   onBackPress,
@@ -60,7 +60,7 @@ export function BackHeader({
       </Pressable>
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   brandHeader: {

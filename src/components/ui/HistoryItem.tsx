@@ -11,7 +11,7 @@ export interface HistoryItemProps {
   style?: ViewStyle;
 }
 
-export function HistoryItem({
+export const HistoryItem = React.memo(function HistoryItem({
   routeText,
   metaText,
   onPress,
@@ -51,7 +51,7 @@ export function HistoryItem({
       </View>
     </Pressable>
   );
-}
+});
 
 const styles = StyleSheet.create({
   container: {

@@ -34,17 +34,20 @@ let cached:
     }
   | undefined;
 
+// 同時呼び出し時の重複リクエストを1本化するインフライトPromise
+let inFlightPromise: Promise<FuelPriceAveragesResponse> | null = null;
+
 const SOURCES = [
   { label: "レギュラー", url: "https://oil-stat.com/reg/.html" },
   { label: "ハイオク", url: "https://oil-stat.com/high.html" },
   { label: "軽油", url: "https://oil-stat.com/light.html" },
 ];
 
+const LATEST_PRICE_REGEX =
+  /最新価格[\s\S]*?([0-9]+(?:\.[0-9]+)?)\s*円（([0-9]{4}年[0-9]{2}月[0-9]{2}日)）/;
+
 function parseLatestPrice(html: string, label: string, sourceUrl: string): FuelPriceAverage {
-  const normalized = html.replace(/\s+/g, " ");
-  const match = normalized.match(
-    /最新価格.*?([0-9]+(?:\.[0-9]+)?)\s*円（([0-9]{4}年[0-9]{2}月[0-9]{2}日)）/,
-  );
+  const match = html.match(LATEST_PRICE_REGEX);
   if (!match) {
     throw new Error(`${label} の最新価格を読み取れませんでした。`);
   }
@@ -68,32 +71,45 @@ export async function fetchFuelPriceAverages(): Promise<FuelPriceAveragesRespons
     return cached.value;
   }
 
-  try {
-    const prices = await Promise.all(
-      SOURCES.map(async (source) => {
-        const response = await fetch(source.url);
-        if (!response.ok) {
-          throw new Error(`${source.label} price request failed: ${response.status}`);
-        }
-        return parseLatestPrice(await response.text(), source.label, source.url);
-      }),
-    );
-
-    const value: FuelPriceAveragesResponse = {
-      prices,
-      sourceLabel: "経済産業省 資源エネルギー庁 石油製品価格調査に基づく全国平均",
-      fetchedAt: new Date(now).toISOString(),
-    };
-    cached = { expiresAt: now + CACHE_TTL_MS, value };
-    return value;
-  } catch {
-    // ネットワーク制限や CORS ブロック時は安全に全国公表平均値を使用
-    const fallbackValue: FuelPriceAveragesResponse = {
-      prices: DEFAULT_PRICES,
-      sourceLabel: "経済産業省 資源エネルギー庁 石油製品価格調査に基づく全国平均",
-      fetchedAt: new Date(now).toISOString(),
-    };
-    cached = { expiresAt: now + CACHE_TTL_MS, value: fallbackValue };
-    return fallbackValue;
+  if (inFlightPromise) {
+    return inFlightPromise;
   }
+
+  const requestPromise = (async (): Promise<FuelPriceAveragesResponse> => {
+    try {
+      const prices = await Promise.all(
+        SOURCES.map(async (source) => {
+          const response = await fetch(source.url);
+          if (!response.ok) {
+            throw new Error(`${source.label} price request failed: ${response.status}`);
+          }
+          return parseLatestPrice(await response.text(), source.label, source.url);
+        }),
+      );
+
+      const completedAt = Date.now();
+      const value: FuelPriceAveragesResponse = {
+        prices,
+        sourceLabel: "経済産業省 資源エネルギー庁 石油製品価格調査に基づく全国平均",
+        fetchedAt: new Date(completedAt).toISOString(),
+      };
+      cached = { expiresAt: completedAt + CACHE_TTL_MS, value };
+      return value;
+    } catch {
+      // ネットワーク制限や CORS ブロック時は安全に全国公表平均値を使用
+      const completedAt = Date.now();
+      const fallbackValue: FuelPriceAveragesResponse = {
+        prices: DEFAULT_PRICES,
+        sourceLabel: "経済産業省 資源エネルギー庁 石油製品価格調査に基づく全国平均",
+        fetchedAt: new Date(completedAt).toISOString(),
+      };
+      cached = { expiresAt: completedAt + CACHE_TTL_MS, value: fallbackValue };
+      return fallbackValue;
+    } finally {
+      inFlightPromise = null;
+    }
+  })();
+
+  inFlightPromise = requestPromise;
+  return requestPromise;
 }

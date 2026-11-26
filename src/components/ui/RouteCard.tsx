@@ -40,7 +40,7 @@ const formatMinutes = (minutes?: number) => {
   return `${m}分`;
 };
 
-export function RouteCard({
+export const RouteCard = React.memo(function RouteCard({
   type,
   title,
   badgeLabel,
@@ -193,7 +193,7 @@ export function RouteCard({
       )}
     </Pressable>
   );
-}
+});
 
 const styles = StyleSheet.create({
   card: {

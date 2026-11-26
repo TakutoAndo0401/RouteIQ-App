@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useCallback, useMemo } from "react";
 import { View, Text, StyleSheet, Pressable, ScrollView } from "react-native";
 import { ArrowUpDown } from "lucide-react-native";
 import { Header } from "../components/ui/Header";
@@ -10,6 +10,60 @@ import { colors } from "../shared/theme/colors";
 import type { ComparisonHistoryItem } from "../contracts";
 
 export type HistoryEntry = ComparisonHistoryItem;
+
+interface HistoryRowProps {
+  item: HistoryEntry;
+  onSelect: (item: HistoryEntry) => void;
+  onDelete: (id: string) => void;
+}
+
+const MemoHistoryRow = React.memo(function MemoHistoryRow({
+  item,
+  onSelect,
+  onDelete,
+}: HistoryRowProps) {
+  const handlePress = useCallback(() => onSelect(item), [onSelect, item]);
+  const handleDelete = useCallback(() => onDelete(item.id), [onDelete, item.id]);
+
+  return (
+    <HistoryItem
+      routeText={`${item.origin} → ${item.destination}`}
+      metaText={`${item.vehicleType} • ${item.date}`}
+      onPress={handlePress}
+      onDeletePress={handleDelete}
+    />
+  );
+});
+
+interface HistorySectionProps {
+  historyList: HistoryEntry[];
+  onSelectHistory: (item: HistoryEntry) => void;
+  onDeleteHistory: (id: string) => void;
+}
+
+const MemoHistorySection = React.memo(function MemoHistorySection({
+  historyList,
+  onSelectHistory,
+  onDeleteHistory,
+}: HistorySectionProps) {
+  if (historyList.length === 0) return null;
+
+  return (
+    <View style={styles.historySection}>
+      <Text style={styles.historySectionTitle}>最近の比較履歴</Text>
+      <View style={styles.historyList}>
+        {historyList.map((item) => (
+          <MemoHistoryRow
+            key={item.id}
+            item={item}
+            onSelect={onSelectHistory}
+            onDelete={onDeleteHistory}
+          />
+        ))}
+      </View>
+    </View>
+  );
+});
 
 export interface SearchTopViewProps {
   origin: string;
@@ -32,7 +86,7 @@ export interface SearchTopViewProps {
   onSubmit: () => void;
 }
 
-export function SearchTopView({
+export const SearchTopView = React.memo(function SearchTopView({
   origin,
   destination,
   fuelEfficiency,
@@ -54,6 +108,28 @@ export function SearchTopView({
 }: SearchTopViewProps) {
   const isFormValid =
     origin.trim().length > 0 && destination.trim().length > 0 && !isFetchingLocation;
+
+  const handleOpenOriginMap = useCallback(() => {
+    onMapSelectPress("origin");
+  }, [onMapSelectPress]);
+
+  const handleOpenDestinationMap = useCallback(() => {
+    onMapSelectPress("destination");
+  }, [onMapSelectPress]);
+
+  const accordionTitle = useMemo(
+    () => `詳細条件 (${vehicleType} / ${fuelEfficiency}km/L)`,
+    [vehicleType, fuelEfficiency],
+  );
+
+  const accordionItems = useMemo(
+    () => [
+      { label: "燃費", value: `${fuelEfficiency} km/L` },
+      { label: "ガソリン単価", value: `${fuelPrice}円 / L` },
+      { label: "車両条件", value: vehicleType },
+    ],
+    [fuelEfficiency, fuelPrice, vehicleType],
+  );
 
   return (
     <View style={styles.container}>
@@ -79,7 +155,7 @@ export function SearchTopView({
             state={isFetchingLocation ? "取得中" : "現在地ボタンあり"}
             onChangeText={onChangeOrigin}
             onCurrentLocationPress={onCurrentLocationPress}
-            onMapSelectPress={() => onMapSelectPress("origin")}
+            onMapSelectPress={handleOpenOriginMap}
           />
 
           {/* Swap Button (36x36 with 8pt hitSlop for 52pt touch target) */}
@@ -102,40 +178,25 @@ export function SearchTopView({
             placeholder="目的地を入力（例: 御殿場IC）"
             state="現在地ボタンなし"
             onChangeText={onChangeDestination}
-            onMapSelectPress={() => onMapSelectPress("destination")}
+            onMapSelectPress={handleOpenDestinationMap}
           />
         </View>
 
         {/* 詳細条件 Accordion (Figma: Accordion) */}
         <Accordion
-          title={`詳細条件 (${vehicleType} / ${fuelEfficiency}km/L)`}
+          title={accordionTitle}
           initiallyOpen={conditionsAccordionInitiallyOpen}
           showEditButton={true}
           onEditPress={onEditConditionsPress}
-          items={[
-            { label: "燃費", value: `${fuelEfficiency} km/L` },
-            { label: "ガソリン単価", value: `${fuelPrice}円 / L` },
-            { label: "車両条件", value: vehicleType },
-          ]}
+          items={accordionItems}
         />
 
         {/* 最近の比較履歴 (Figma: recent-history) */}
-        {historyList.length > 0 && (
-          <View style={styles.historySection}>
-            <Text style={styles.historySectionTitle}>最近の比較履歴</Text>
-            <View style={styles.historyList}>
-              {historyList.map((item) => (
-                <HistoryItem
-                  key={item.id}
-                  routeText={`${item.origin} → ${item.destination}`}
-                  metaText={`${item.vehicleType} • ${item.date}`}
-                  onPress={() => onSelectHistory(item)}
-                  onDeletePress={() => onDeleteHistory(item.id)}
-                />
-              ))}
-            </View>
-          </View>
-        )}
+        <MemoHistorySection
+          historyList={historyList}
+          onSelectHistory={onSelectHistory}
+          onDeleteHistory={onDeleteHistory}
+        />
       </ScrollView>
 
       {/* Sticky Bottom Action Footer */}
@@ -149,7 +210,7 @@ export function SearchTopView({
       />
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   container: {

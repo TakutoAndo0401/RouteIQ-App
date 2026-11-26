@@ -13,7 +13,13 @@ export interface ToastProps {
   textStyle?: TextStyle;
 }
 
-export function Toast({ message, variant = "success", type, style, textStyle }: ToastProps) {
+export const Toast = React.memo(function Toast({
+  message,
+  variant = "success",
+  type,
+  style,
+  textStyle,
+}: ToastProps) {
   const activeVariant = (type || variant).toLowerCase();
   const isError = activeVariant === "error";
 
@@ -29,7 +35,7 @@ export function Toast({ message, variant = "success", type, style, textStyle }: 
       <Text style={[styles.text, textStyle]}>{message}</Text>
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   container: {

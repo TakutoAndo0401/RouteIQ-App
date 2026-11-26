@@ -37,6 +37,7 @@ export interface ConditionEditSheetProps {
 // Figma bezier curve: [0.16, 1, 0.3, 1]
 const FIGMA_EASING = Easing.bezier(0.16, 1, 0.3, 1);
 const ENTRANCE_TRANSLATE_Y = 80; // Figma nodeId: 33:3500 initial y: 80
+const VEHICLE_OPTIONS = ["普通車", "大型車", "軽自動車"] as const;
 
 interface ConditionFormProps {
   initialEfficiency: string;
@@ -60,6 +61,9 @@ function ConditionForm({
   );
 
   useEffect(() => {
+    if (cachedFuelPrices && cachedFuelPrices.prices.length > 0) {
+      return;
+    }
     let ignore = false;
     getFuelPrices()
       .then((res) => {
@@ -76,7 +80,13 @@ function ConditionForm({
     };
   }, [getFuelPrices]);
 
-  const vehicleOptions = ["普通車", "大型車", "軽自動車"];
+  const handleSave = useCallback(() => {
+    onSave({
+      fuelEfficiency: efficiency,
+      fuelPrice: price,
+      vehicleType: vehicle,
+    });
+  }, [onSave, efficiency, price, vehicle]);
 
   return (
     <>
@@ -142,7 +152,7 @@ function ConditionForm({
       <View style={styles.vehicleSection}>
         <Text style={styles.sectionLabel}>車両条件</Text>
         <View style={styles.radioGroup}>
-          {vehicleOptions.map((opt) => (
+          {VEHICLE_OPTIONS.map((opt) => (
             <RadioButton
               key={opt}
               label={opt}
@@ -154,22 +164,12 @@ function ConditionForm({
       </View>
 
       {/* Save Button */}
-      <Button
-        label="設定を保存"
-        onPress={() =>
-          onSave({
-            fuelEfficiency: efficiency,
-            fuelPrice: price,
-            vehicleType: vehicle,
-          })
-        }
-        style={styles.saveBtn}
-      />
+      <Button label="設定を保存" onPress={handleSave} style={styles.saveBtn} />
     </>
   );
 }
 
-export function ConditionEditSheet({
+export const ConditionEditSheet = React.memo(function ConditionEditSheet({
   visible,
   fuelEfficiency,
   fuelPrice,
@@ -262,7 +262,11 @@ export function ConditionEditSheet({
         ]),
       ]);
 
-      Animated.parallel([scrimAnimation, sheetAnimation]).start();
+      const entranceAnim = Animated.parallel([scrimAnimation, sheetAnimation]);
+      entranceAnim.start();
+      return () => {
+        entranceAnim.stop();
+      };
     }
   }, [visible, scrimOpacity, sheetOpacity, sheetTranslateY]);
 
@@ -340,7 +344,7 @@ export function ConditionEditSheet({
       </View>
     </Modal>
   );
-}
+});
 
 const styles = StyleSheet.create({
   container: {

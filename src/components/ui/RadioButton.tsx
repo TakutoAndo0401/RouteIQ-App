@@ -11,7 +11,7 @@ export interface RadioButtonProps {
   disabled?: boolean;
 }
 
-export function RadioButton({
+export const RadioButton = React.memo(function RadioButton({
   label,
   selected = false,
   onPress,
@@ -46,7 +46,7 @@ export function RadioButton({
       </Text>
     </Pressable>
   );
-}
+});
 
 const styles = StyleSheet.create({
   container: {

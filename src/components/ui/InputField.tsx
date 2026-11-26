@@ -27,7 +27,7 @@ export interface InputFieldProps {
   readOnly?: boolean;
 }
 
-export function InputField({
+export const InputField = React.memo(function InputField({
   label,
   value = "",
   placeholder = "IC名や地名を入力",
@@ -79,7 +79,7 @@ export function InputField({
       </View>
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   wrapper: {

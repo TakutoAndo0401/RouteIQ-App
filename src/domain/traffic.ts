@@ -6,63 +6,17 @@ export interface SpeedReadingInterval {
   speed?: "NORMAL" | "SLOW" | "TRAFFIC_JAM" | string;
 }
 
-type SpeedCategory = "normal" | "slow" | "trafficJam" | "unknown";
-
-interface TrafficCounts {
-  normal: number;
-  slow: number;
-  trafficJam: number;
-  unknown: number;
-}
-
-function speedCategory(speed: SpeedReadingInterval["speed"]): SpeedCategory {
-  if (speed === "NORMAL") return "normal";
-  if (speed === "SLOW") return "slow";
-  if (speed === "TRAFFIC_JAM") return "trafficJam";
-  return "unknown";
-}
-
-function incrementCount(counts: TrafficCounts, category: SpeedCategory, value: number): void {
-  counts[category] += value;
-}
-
 function formatPercent(value: number, total: number): number {
   if (total <= 0) return 0;
   return Math.round((value / total) * 100);
 }
 
-function rangeLength(interval: SpeedReadingInterval): number | null {
-  const start = interval.startPolylinePointIndex ?? 0;
-  const end = interval.endPolylinePointIndex;
-  if (typeof end !== "number" || end <= start) return null;
-  return end - start;
-}
-
-function weightedPosition(intervals: SpeedReadingInterval[]): string | null {
-  let weightedMidpoint = 0;
-  let totalWeight = 0;
-  let maxEnd = 0;
-
-  for (const interval of intervals) {
-    if (typeof interval.endPolylinePointIndex === "number") {
-      maxEnd = Math.max(maxEnd, interval.endPolylinePointIndex);
-    }
-
-    const category = speedCategory(interval.speed);
-    if (category !== "slow" && category !== "trafficJam") continue;
-
-    const start = interval.startPolylinePointIndex ?? 0;
-    const end = interval.endPolylinePointIndex;
-    const length = rangeLength(interval);
-    if (typeof end !== "number" || length === null) continue;
-
-    const weight = category === "trafficJam" ? length * 2 : length;
-    weightedMidpoint += ((start + end) / 2) * weight;
-    totalWeight += weight;
-  }
-
-  if (totalWeight === 0 || maxEnd === 0) return null;
-
+function resolveDelayPosition(
+  weightedMidpoint: number,
+  totalWeight: number,
+  maxEnd: number,
+): string | null {
+  if (totalWeight <= 0 || maxEnd <= 0) return null;
   const ratio = weightedMidpoint / totalWeight / maxEnd;
   if (ratio < 0.34) return "前半";
   if (ratio < 0.67) return "中盤";
@@ -73,48 +27,100 @@ export function summarizeSpeedIntervals(intervals: SpeedReadingInterval[]): {
   congestionLevel: CongestionLevel;
   trafficSummary: string;
 } {
-  if (intervals.length === 0) {
+  const len = intervals.length;
+  if (len === 0) {
     return {
       congestionLevel: "unknown",
       trafficSummary: "交通速度区間データは取得できませんでした。",
     };
   }
 
-  const weightedCounts = { normal: 0, slow: 0, trafficJam: 0, unknown: 0 };
-  const intervalCounts = { normal: 0, slow: 0, trafficJam: 0, unknown: 0 };
+  // スカラー変数で集計し、ホットループ内の動的プロパティアクセスとオブジェクト割当を排除
+  let wNormal = 0;
+  let wSlow = 0;
+  let wTrafficJam = 0;
+  let wUnknown = 0;
+
+  let iNormal = 0;
+  let iSlow = 0;
+  let iTrafficJam = 0;
+  let iUnknown = 0;
+
   let hasPolylineIndexes = false;
+  let weightedMidpoint = 0;
+  let totalWeight = 0;
+  let maxEnd = 0;
 
-  for (const interval of intervals) {
-    const category = speedCategory(interval.speed);
-    incrementCount(intervalCounts, category, 1);
+  for (let i = 0; i < len; i++) {
+    const interval = intervals[i];
+    const speed = interval.speed;
+    const end = interval.endPolylinePointIndex;
 
-    const length = rangeLength(interval);
-    if (length === null) continue;
+    let length = 0;
+    let start = 0;
+    if (typeof end === "number") {
+      if (end > maxEnd) maxEnd = end;
+      start = interval.startPolylinePointIndex ?? 0;
+      length = end - start;
+    }
 
-    hasPolylineIndexes = true;
-    incrementCount(weightedCounts, category, length);
+    if (speed === "NORMAL") {
+      iNormal += 1;
+      if (length > 0) {
+        hasPolylineIndexes = true;
+        wNormal += length;
+      }
+    } else if (speed === "SLOW") {
+      iSlow += 1;
+      if (length > 0) {
+        hasPolylineIndexes = true;
+        wSlow += length;
+        weightedMidpoint += (start + end!) * 0.5 * length;
+        totalWeight += length;
+      }
+    } else if (speed === "TRAFFIC_JAM") {
+      iTrafficJam += 1;
+      if (length > 0) {
+        hasPolylineIndexes = true;
+        wTrafficJam += length;
+        const weight = length * 2;
+        weightedMidpoint += (start + end!) * 0.5 * weight;
+        totalWeight += weight;
+      }
+    } else {
+      iUnknown += 1;
+      if (length > 0) {
+        hasPolylineIndexes = true;
+        wUnknown += length;
+      }
+    }
   }
 
-  const counts = hasPolylineIndexes ? weightedCounts : intervalCounts;
-  const total = counts.normal + counts.slow + counts.trafficJam + counts.unknown;
-  const detail = hasPolylineIndexes
-    ? `速度区間の割合は通常 ${formatPercent(counts.normal, total)}%、低速 ${formatPercent(counts.slow, total)}%、渋滞 ${formatPercent(counts.trafficJam, total)}%です。`
-    : `速度区間の内訳は NORMAL: ${counts.normal}, SLOW: ${counts.slow}, TRAFFIC_JAM: ${counts.trafficJam} です。`;
-  const position = weightedPosition(intervals);
+  const normal = hasPolylineIndexes ? wNormal : iNormal;
+  const slow = hasPolylineIndexes ? wSlow : iSlow;
+  const trafficJam = hasPolylineIndexes ? wTrafficJam : iTrafficJam;
+  const unknown = hasPolylineIndexes ? wUnknown : iUnknown;
+  const total = normal + slow + trafficJam + unknown;
 
-  if (counts.trafficJam > 0) {
+  const detail = hasPolylineIndexes
+    ? `速度区間の割合は通常 ${formatPercent(normal, total)}%、低速 ${formatPercent(slow, total)}%、渋滞 ${formatPercent(trafficJam, total)}%です。`
+    : `速度区間の内訳は NORMAL: ${normal}, SLOW: ${slow}, TRAFFIC_JAM: ${trafficJam} です。`;
+
+  if (trafficJam > 0) {
+    const position = resolveDelayPosition(weightedMidpoint, totalWeight, maxEnd);
     return {
       congestionLevel: "high",
       trafficSummary: `渋滞区間が含まれます。${position ? `ルートの${position}に遅れが集中しています。` : ""}${detail}`,
     };
   }
-  if (counts.slow > 0) {
+  if (slow > 0) {
+    const position = resolveDelayPosition(weightedMidpoint, totalWeight, maxEnd);
     return {
       congestionLevel: "moderate",
       trafficSummary: `一部で低速区間があります。${position ? `ルートの${position}に遅れが出ています。` : ""}${detail}`,
     };
   }
-  if (counts.normal > 0 && counts.unknown === 0) {
+  if (normal > 0 && unknown === 0) {
     return {
       congestionLevel: "low",
       trafficSummary: `大きな渋滞は検出されていません。${detail}`,

@@ -84,19 +84,44 @@ const HIGHWAY_PATTERNS = [
   /圏央道/,
 ];
 
+// リテラルのみの高速プレフィルタ（O(L) 線形探索で非高速道路文字列のバックトラックを完全回避）
+const HIGHWAY_KEYWORD_FAST_REGEX =
+  /高速|自動車道|有料道路|アクアライン|第三京浜|横浜新道|小田原厚木道路|西湘バイパス|京葉道路|東京外環|外環道|圏央道/;
+
+const LANE_PREFIX_REGEX = /^(?:右|左)車線を使用して\s*/;
+const BRANCH_PREFIX_REGEX = /^分岐を\s*/;
+const ACTION_SUFFIX_REGEX =
+  /(?:に(?:入る|進む|向かう)|を(?:進む|直進する|出る|経由する)|の標識に従う).*$/;
+const TRAILING_PUNCT_REGEX = /[、。・]$/;
+const PARTICLE_PREFIX_REGEX = /^(?:で|に|を)\s*/;
+const DESC_SPLIT_REGEX = /[,、/]/;
+const TOKEN_SPLIT_REGEX = /[\s,、]+/;
+const DURATION_REGEX = /^(\d+(?:\.\d+)?)s$/;
+
+const EXPRESSWAY_FIELD_MASK =
+  "routes.duration,routes.distanceMeters,routes.description,routes.polyline.encodedPolyline,routes.warnings,routes.travelAdvisory.tollInfo,routes.travelAdvisory.speedReadingIntervals,routes.legs.steps.navigationInstruction,fallbackInfo";
+const LOCAL_FIELD_MASK =
+  "routes.duration,routes.distanceMeters,routes.description,routes.polyline.encodedPolyline,routes.warnings,routes.travelAdvisory.tollInfo,routes.travelAdvisory.speedReadingIntervals,fallbackInfo";
+
 export function isHighwayName(name: string): boolean {
-  return HIGHWAY_PATTERNS.some((pattern) => pattern.test(name));
+  if (!HIGHWAY_KEYWORD_FAST_REGEX.test(name)) return false;
+  for (let i = 0; i < HIGHWAY_PATTERNS.length; i++) {
+    if (HIGHWAY_PATTERNS[i].test(name)) return true;
+  }
+  return false;
 }
 
 export function cleanHighwayName(raw: string): string {
   // スラッシュがある場合は最初の部分（日本語道路名）を優先
-  const firstToken = raw.split("/")[0].trim();
+  const slashIdx = raw.indexOf("/");
+  const firstToken = (slashIdx === -1 ? raw : raw.slice(0, slashIdx)).trim();
+  if (!firstToken) return "";
   return firstToken
-    .replace(/^(?:右|左)車線を使用して\s*/, "")
-    .replace(/^分岐を\s*/, "")
-    .replace(/(?:に(?:入る|進む|向かう)|を(?:進む|直進する|出る|経由する)|の標識に従う).*$/, "")
-    .replace(/[、。・]$/, "")
-    .replace(/^(?:で|に|を)\s*/, "")
+    .replace(LANE_PREFIX_REGEX, "")
+    .replace(BRANCH_PREFIX_REGEX, "")
+    .replace(ACTION_SUFFIX_REGEX, "")
+    .replace(TRAILING_PUNCT_REGEX, "")
+    .replace(PARTICLE_PREFIX_REGEX, "")
     .trim();
 }
 
@@ -108,45 +133,53 @@ export function extractHighwayNames(route: GoogleRoute): {
   const seen = new Set<string>();
 
   const tryAdd = (rawCandidate: string) => {
-    const cleaned = cleanHighwayName(rawCandidate);
-    if (!cleaned) return;
-    if (isHighwayName(cleaned) && !seen.has(cleaned)) {
-      // 既存の名称との包含関係チェック（例: "東名高速道路" が既にあれば "東名高速" は追加しない）
-      const existingSuper = detected.find((d) => d.includes(cleaned));
-      if (existingSuper) return;
+    // リテラル高速プレフィルタで非該当トークンを O(L) で即スキップ
+    if (!rawCandidate || !HIGHWAY_KEYWORD_FAST_REGEX.test(rawCandidate)) return;
 
-      const existingSubIndex = detected.findIndex((d) => cleaned.includes(d));
-      if (existingSubIndex !== -1) {
+    const cleaned = cleanHighwayName(rawCandidate);
+    if (!cleaned || seen.has(cleaned) || !isHighwayName(cleaned)) return;
+
+    // 既存の名称との包含関係チェック（例: "東名高速道路" が既にあれば "東名高速" は追加しない）
+    for (let i = 0; i < detected.length; i++) {
+      if (detected[i].includes(cleaned)) return;
+    }
+
+    for (let i = 0; i < detected.length; i++) {
+      if (cleaned.includes(detected[i])) {
         // より詳細な名称（例: "東名高速道路"）で置換
-        const old = detected[existingSubIndex];
-        seen.delete(old);
-        detected[existingSubIndex] = cleaned;
+        seen.delete(detected[i]);
+        detected[i] = cleaned;
         seen.add(cleaned);
         return;
       }
-
-      seen.add(cleaned);
-      detected.push(cleaned);
     }
+
+    seen.add(cleaned);
+    detected.push(cleaned);
   };
 
   // 1. route.description を検証
-  if (route.description) {
-    const descParts = route.description.split(/[,、/]/);
-    for (const part of descParts) {
-      tryAdd(part);
+  if (route.description && HIGHWAY_KEYWORD_FAST_REGEX.test(route.description)) {
+    const descParts = route.description.split(DESC_SPLIT_REGEX);
+    for (let i = 0; i < descParts.length; i++) {
+      tryAdd(descParts[i]);
     }
   }
 
   // 2. steps の navigationInstruction.instructions を走査
-  for (const leg of route.legs ?? []) {
-    for (const step of leg.steps ?? []) {
-      const instruction = step.navigationInstruction?.instructions;
-      if (!instruction) continue;
+  const legs = route.legs;
+  if (legs) {
+    for (let li = 0; li < legs.length; li++) {
+      const steps = legs[li].steps;
+      if (!steps) continue;
+      for (let si = 0; si < steps.length; si++) {
+        const instruction = steps[si].navigationInstruction?.instructions;
+        if (!instruction || !HIGHWAY_KEYWORD_FAST_REGEX.test(instruction)) continue;
 
-      const tokens = instruction.split(/[\s,、]+/);
-      for (const token of tokens) {
-        tryAdd(token);
+        const tokens = instruction.split(TOKEN_SPLIT_REGEX);
+        for (let ti = 0; ti < tokens.length; ti++) {
+          tryAdd(tokens[ti]);
+        }
       }
     }
   }
@@ -160,7 +193,7 @@ export function extractHighwayNames(route: GoogleRoute): {
 }
 
 export function parseDurationMinutes(duration: string | undefined): number {
-  const match = duration?.match(/^(\d+(?:\.\d+)?)s$/);
+  const match = duration?.match(DURATION_REGEX);
   if (!match) {
     throw new Error("Google Routes API のレスポンスに有効な所要時間(duration)が含まれていません。");
   }
@@ -170,29 +203,32 @@ export function parseDurationMinutes(duration: string | undefined): number {
 export function decodePolyline(encoded: string | undefined): RouteCoordinate[] {
   if (!encoded) return [];
 
+  const len = encoded.length;
   const coordinates: RouteCoordinate[] = [];
   let index = 0;
   let lat = 0;
   let lng = 0;
 
-  const readValue = () => {
+  while (index < len) {
     let result = 0;
     let shift = 0;
     let byte: number;
-
     do {
-      byte = encoded.charCodeAt(index) - 63;
-      index += 1;
+      byte = encoded.charCodeAt(index++) - 63;
       result |= (byte & 0x1f) << shift;
       shift += 5;
-    } while (byte >= 0x20 && index <= encoded.length);
+    } while (byte >= 0x20 && index <= len);
+    lat += result & 1 ? ~(result >> 1) : result >> 1;
 
-    return result & 1 ? ~(result >> 1) : result >> 1;
-  };
+    result = 0;
+    shift = 0;
+    do {
+      byte = encoded.charCodeAt(index++) - 63;
+      result |= (byte & 0x1f) << shift;
+      shift += 5;
+    } while (byte >= 0x20 && index <= len);
+    lng += result & 1 ? ~(result >> 1) : result >> 1;
 
-  while (index < encoded.length) {
-    lat += readValue();
-    lng += readValue();
     coordinates.push({
       lat: lat / 1e5,
       lng: lng / 1e5,
@@ -262,9 +298,11 @@ export function parseToll(
     };
   }
 
-  const yenPrice = prices.map(yenFromMoney).find((price) => price !== null);
-  if (typeof yenPrice === "number") {
-    return { tollYen: yenPrice, confidence: "api" };
+  for (let i = 0; i < prices.length; i++) {
+    const yenPrice = yenFromMoney(prices[i]);
+    if (yenPrice !== null) {
+      return { tollYen: yenPrice, confidence: "api" };
+    }
   }
 
   return {
@@ -319,7 +357,7 @@ export class GoogleRoutesProvider {
         "Content-Type": "application/json",
         "X-Goog-Api-Key": this.options.apiKey,
         "X-Goog-FieldMask":
-          "routes.duration,routes.distanceMeters,routes.description,routes.polyline.encodedPolyline,routes.warnings,routes.travelAdvisory.tollInfo,routes.travelAdvisory.speedReadingIntervals,routes.legs.travelAdvisory.tollInfo,routes.legs.travelAdvisory.speedReadingIntervals,routes.legs.steps.navigationInstruction,fallbackInfo",
+          request.routeType === "expressway" ? EXPRESSWAY_FIELD_MASK : LOCAL_FIELD_MASK,
       },
       body: JSON.stringify(body),
     });

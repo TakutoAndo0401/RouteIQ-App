@@ -36,10 +36,21 @@ export function addOrUpdateHistoryItem(
   newItem: ComparisonHistoryItem,
   maxItems: number = MAX_HISTORY_ITEMS,
 ): ComparisonHistoryItem[] {
-  // 重複を除外
-  const filtered = currentList.filter((item) => !isSameRoute(item, newItem));
-  // 先頭に追加して件数制限
-  return [newItem, ...filtered].slice(0, maxItems);
+  const targetOrigin = newItem.origin.trim().toLowerCase();
+  const targetDestination = newItem.destination.trim().toLowerCase();
+  const result: ComparisonHistoryItem[] = [newItem];
+
+  for (let i = 0; i < currentList.length && result.length < maxItems; i++) {
+    const item = currentList[i];
+    if (
+      item.origin.trim().toLowerCase() !== targetOrigin ||
+      item.destination.trim().toLowerCase() !== targetDestination
+    ) {
+      result.push(item);
+    }
+  }
+
+  return result;
 }
 
 /**

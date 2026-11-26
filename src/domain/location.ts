@@ -45,16 +45,16 @@ export function formatGeocodedAddress(item: GeocodedAddressInput): string {
 
   // street / district
   const streetPart = street || district;
-  if (streetPart && !parts.some((p) => p.includes(streetPart))) {
+  if (streetPart && !partsContain(parts, streetPart)) {
     parts.push(streetPart);
   }
 
   // streetNumber or name
-  if (streetNumber && !parts.some((p) => p.includes(streetNumber))) {
+  if (streetNumber && !partsContain(parts, streetNumber)) {
     parts.push(streetNumber);
   } else if (
     name &&
-    !parts.some((p) => p.includes(name)) &&
+    !partsContain(parts, name) &&
     name !== street &&
     name !== city &&
     name !== region
@@ -62,8 +62,14 @@ export function formatGeocodedAddress(item: GeocodedAddressInput): string {
     parts.push(name);
   }
 
-  const result = parts.join("").trim();
-  return result;
+  return parts.join("").trim();
+}
+
+function partsContain(parts: string[], needle: string): boolean {
+  for (let i = 0; i < parts.length; i++) {
+    if (parts[i].includes(needle)) return true;
+  }
+  return false;
 }
 
 /**
@@ -245,37 +251,54 @@ export const KNOWN_LOCATIONS: Record<string, Coordinates> = {
   名古屋: { latitude: 35.1815, longitude: 136.9066 },
 };
 
+const PAREN_SUFFIX_REGEX = /\s*\([^)]*\)/g;
+const COORD_TEXT_REGEX =
+  /(?:北緯|lat:?\s*)?(-?\d+\.\d+)[°,\s]+(?:東経|lng:?\s*|lon:?\s*)?(-?\d+\.\d+)/;
+
+/**
+ * 事前ソート済みの既知地点テーブル
+ * （具体的ランドマーク・駅・ICを行政区よりも優先し、キー長降順に評価）
+ */
+const SORTED_KNOWN_LOCATIONS: ReadonlyArray<readonly [string, Coordinates]> = Object.entries(
+  KNOWN_LOCATIONS,
+).sort((a, b) => {
+  const isAreaA = a[0].endsWith("区") || a[0].endsWith("市");
+  const isAreaB = b[0].endsWith("区") || b[0].endsWith("市");
+  if (isAreaA !== isAreaB) {
+    return isAreaA ? 1 : -1;
+  }
+  return b[0].length - a[0].length;
+});
+
+function parseExplicitCoordinates(clean: string): Coordinates | null {
+  const coordMatch = clean.match(COORD_TEXT_REGEX);
+  if (!coordMatch) return null;
+  const lat = parseFloat(coordMatch[1]);
+  const lng = parseFloat(coordMatch[2]);
+  if (!isNaN(lat) && !isNaN(lng)) {
+    return { latitude: lat, longitude: lng };
+  }
+  return null;
+}
+
 /**
  * 住所文字列から緯度経度を解決します。
  */
 export async function geocodeAddress(address: string): Promise<Coordinates> {
-  const clean = address.replace(/\s*\([^)]*\)/g, "").trim();
+  const clean = address.replace(PAREN_SUFFIX_REGEX, "").trim();
   if (!clean) {
     return { latitude: 35.6812, longitude: 139.7671 };
   }
 
   // 0. 緯度経度表記のパース (例: 北緯35.123, 東経139.456)
-  const coordMatch = clean.match(
-    /(?:北緯|lat:?\s*)?(-?\d+\.\d+)[°,\s]+(?:東経|lng:?\s*|lon:?\s*)?(-?\d+\.\d+)/,
-  );
-  if (coordMatch) {
-    const lat = parseFloat(coordMatch[1]);
-    const lng = parseFloat(coordMatch[2]);
-    if (!isNaN(lat) && !isNaN(lng)) {
-      return { latitude: lat, longitude: lng };
-    }
+  const explicit = parseExplicitCoordinates(clean);
+  if (explicit) {
+    return explicit;
   }
 
-  // 1. 事前定義の既知地点からマッチング（具体的ランドマーク・駅・ICを行政区よりも優先し、キー長順に評価）
-  const sortedEntries = Object.entries(KNOWN_LOCATIONS).sort((a, b) => {
-    const isAreaA = a[0].endsWith("区") || a[0].endsWith("市");
-    const isAreaB = b[0].endsWith("区") || b[0].endsWith("市");
-    if (isAreaA !== isAreaB) {
-      return isAreaA ? 1 : -1;
-    }
-    return b[0].length - a[0].length;
-  });
-  for (const [key, coords] of sortedEntries) {
+  // 1. 事前定義の既知地点からマッチング（事前ソート済み配列を走査）
+  for (let i = 0; i < SORTED_KNOWN_LOCATIONS.length; i++) {
+    const [key, coords] = SORTED_KNOWN_LOCATIONS[i];
     if (clean.includes(key) || key.includes(clean)) {
       return coords;
     }
@@ -398,30 +421,18 @@ export function resolveCoordinatesFromText(
   defaultCoords: Coordinates,
 ): Coordinates {
   if (!text) return defaultCoords;
-  const clean = text.replace(/\s*\([^)]*\)/g, "").trim();
+  const clean = text.replace(PAREN_SUFFIX_REGEX, "").trim();
+  if (!clean) return defaultCoords;
 
   // 0. 緯度経度表記のパース (例: 北緯35.123, 東経139.456)
-  const coordMatch = clean.match(
-    /(?:北緯|lat:?\s*)?(-?\d+\.\d+)[°,\s]+(?:東経|lng:?\s*|lon:?\s*)?(-?\d+\.\d+)/,
-  );
-  if (coordMatch) {
-    const lat = parseFloat(coordMatch[1]);
-    const lng = parseFloat(coordMatch[2]);
-    if (!isNaN(lat) && !isNaN(lng)) {
-      return { latitude: lat, longitude: lng };
-    }
+  const explicit = parseExplicitCoordinates(clean);
+  if (explicit) {
+    return explicit;
   }
 
-  // 1. 事前定義の既知地点からマッチング（具体的ランドマーク・駅・ICを行政区よりも優先し、キー長順に評価）
-  const sortedEntries = Object.entries(KNOWN_LOCATIONS).sort((a, b) => {
-    const isAreaA = a[0].endsWith("区") || a[0].endsWith("市");
-    const isAreaB = b[0].endsWith("区") || b[0].endsWith("市");
-    if (isAreaA !== isAreaB) {
-      return isAreaA ? 1 : -1;
-    }
-    return b[0].length - a[0].length;
-  });
-  for (const [key, coords] of sortedEntries) {
+  // 1. 事前定義の既知地点からマッチング（事前ソート済み配列を走査）
+  for (let i = 0; i < SORTED_KNOWN_LOCATIONS.length; i++) {
+    const [key, coords] = SORTED_KNOWN_LOCATIONS[i];
     if (clean.includes(key)) {
       return coords;
     }

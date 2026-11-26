@@ -14,7 +14,7 @@ export interface FormFieldProps {
   readOnly?: boolean;
 }
 
-export function FormField({
+export const FormField = React.memo(function FormField({
   label,
   value,
   unit,
@@ -42,7 +42,7 @@ export function FormField({
       </View>
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   wrapper: {

@@ -1,13 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import {
-  Modal,
-  View,
-  Text,
-  StyleSheet,
-  Pressable,
-  ActivityIndicator,
-  Platform,
-} from "react-native";
+import { Modal, View, Text, StyleSheet, Pressable, ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Map, X, MapPin } from "lucide-react-native";
 import { Button } from "../components/ui/Button";
@@ -28,7 +20,7 @@ export interface MapSelectModalProps {
   onConfirm: (address: string, coords?: Coordinates) => void;
 }
 
-export function MapSelectModal({
+export const MapSelectModal = React.memo(function MapSelectModal({
   visible,
   target,
   currentAddress = "東京駅",
@@ -47,10 +39,13 @@ export function MapSelectModal({
   const [selectedCoords, setSelectedCoords] = useState<Coordinates | null>(null);
   const [isResolvingAddress, setIsResolvingAddress] = useState(false);
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const geocodeRequestIdRef = useRef(0);
 
   const handleClose = useCallback(() => {
+    geocodeRequestIdRef.current += 1;
     if (debounceTimerRef.current) {
       clearTimeout(debounceTimerRef.current);
+      debounceTimerRef.current = null;
     }
     setIsResolvingAddress(false);
     setCustomAddress(null);
@@ -77,16 +72,18 @@ export function MapSelectModal({
   // クリーンアップ
   useEffect(() => {
     return () => {
+      geocodeRequestIdRef.current += 1;
       if (debounceTimerRef.current) {
         clearTimeout(debounceTimerRef.current);
       }
     };
   }, []);
 
-  // ピン移動時のハンドラ（デバウンスして逆ジオコーディング）
+  // ピン移動時のハンドラ（デバウンスして逆ジオコーディング＋古い非同期結果の破棄）
   const handleLocationSelect = useCallback((coords: Coordinates) => {
     setSelectedCoords(coords);
     setIsResolvingAddress(true);
+    const requestId = ++geocodeRequestIdRef.current;
 
     if (debounceTimerRef.current) {
       clearTimeout(debounceTimerRef.current);
@@ -95,18 +92,33 @@ export function MapSelectModal({
     debounceTimerRef.current = setTimeout(async () => {
       try {
         const addr = await reverseGeocodeCoordinates(coords);
+        if (geocodeRequestIdRef.current !== requestId) return;
         if (addr) {
           setCustomAddress(addr);
         } else {
           setCustomAddress(formatFallbackCoordinates(coords));
         }
       } catch {
+        if (geocodeRequestIdRef.current !== requestId) return;
         setCustomAddress(formatFallbackCoordinates(coords));
       } finally {
-        setIsResolvingAddress(false);
+        if (geocodeRequestIdRef.current === requestId) {
+          setIsResolvingAddress(false);
+        }
       }
     }, 250);
   }, []);
+
+  const handleConfirmPress = useCallback(() => {
+    if (isResolvingAddress) return;
+    onConfirm(selectedAddress, selectedCoords ?? undefined);
+    handleClose();
+  }, [isResolvingAddress, onConfirm, selectedAddress, selectedCoords, handleClose]);
+
+  // 非表示時は Modal / GoogleMapView のツリー生成自体をスキップ（入力時の再描画負荷をゼロ化）
+  if (!visible) {
+    return null;
+  }
 
   const modalTitle = target === "origin" ? "出発地を地図で選択" : "目的地を地図で選択";
   const pinLabel = target === "origin" ? "出発地" : "目的地";
@@ -179,11 +191,7 @@ export function MapSelectModal({
             <Button
               label="この位置を設定"
               disabled={isResolvingAddress}
-              onPress={() => {
-                if (isResolvingAddress) return;
-                onConfirm(selectedAddress, selectedCoords ?? undefined);
-                handleClose();
-              }}
+              onPress={handleConfirmPress}
               style={styles.confirmBtn}
             />
           </View>
@@ -191,7 +199,7 @@ export function MapSelectModal({
       </View>
     </Modal>
   );
-}
+});
 
 const styles = StyleSheet.create({
   modalOverlay: {
