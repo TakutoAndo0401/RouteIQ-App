@@ -62,7 +62,23 @@ export function formatGeocodedAddress(item: GeocodedAddressInput): string {
     parts.push(name);
   }
 
-  return parts.join("").trim();
+  return joinAddressParts(parts);
+}
+
+const LATIN_END_REGEX = /[A-Za-z0-9\u00C0-\u024F\u1E00-\u1EFF]$/;
+const LATIN_START_REGEX = /^[A-Za-z0-9\u00C0-\u024F\u1E00-\u1EFF]/;
+
+function joinAddressParts(parts: string[]): string {
+  let result = "";
+  for (let i = 0; i < parts.length; i++) {
+    const part = parts[i].trim();
+    if (!part) continue;
+    if (result.length > 0 && LATIN_END_REGEX.test(result) && LATIN_START_REGEX.test(part)) {
+      result += " ";
+    }
+    result += part;
+  }
+  return result.trim();
 }
 
 function partsContain(parts: string[], needle: string): boolean {

@@ -52,6 +52,16 @@ describe("位置情報・住所逆引き処理 (location domain)", () => {
         };
         expect(formatGeocodedAddress(address)).toBe("静岡県御殿場市");
       });
+
+      it("端末ロケールが英語の場合でも英数字パーツ間にスペースを入れて結合できる", () => {
+        const address = {
+          region: "Tokyo",
+          city: "Chiyoda City",
+          street: "1-chōme",
+          streetNumber: "9",
+        };
+        expect(formatGeocodedAddress(address)).toBe("Tokyo Chiyoda City 1-chōme 9");
+      });
     });
 
     describe("境界値テスト", () => {
